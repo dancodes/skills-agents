@@ -6,24 +6,14 @@ hooks:
     - matcher: Bash
       hooks:
         - type: command
-          if: "Bash(jj op restore:*)"
           command: >-
-            echo 'jj op restore is forbidden: it rewinds the whole repo
-            operation log, which un-registers the workspaces other agents are
-            working in. To back out your own last operation use jj undo.' >&2;
-            exit 2
+            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/forbidden-commands.py"
+  PostToolUse:
+    - matcher: Bash|Task|Agent
+      hooks:
         - type: command
-          if: "Bash(yarn vitest:*)"
           command: >-
-            echo 'yarn vitest is forbidden. Run the repository scripts instead:
-            yarn test, or yarn test:integration for integration tests.' >&2;
-            exit 2
-        - type: command
-          if: "Bash(npx:*)"
-          command: >-
-            echo 'npx is forbidden. Use executables already present in the
-            working directory (yarn scripts, ./node_modules/.bin) instead.' >&2;
-            exit 2
+            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/commit-id-to-change-id.py"
 ---
 
 You implement code changes inside the workspace directory given in your prompt. All work happens in that directory.
