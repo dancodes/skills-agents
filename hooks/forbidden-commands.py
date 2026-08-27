@@ -22,6 +22,12 @@ RULES = [
      "usually another agent's. Correct your work forward with another squash, "
      "or apply the inverse of one named operation with jj op revert "
      "<operation-id>, taking the id from jj op log."),
+    (r"\bjj\s+op(?:eration)?\s+abandon\b",
+     "jj op abandon is forbidden: it discards operation history, and a "
+     "workspace whose recorded operation is discarded goes stale. jj workspace "
+     "update-stale then rebuilds that workspace as a recovery commit, which "
+     "leaves the change divergent and makes the work look lost. Nothing here "
+     "needs to prune the operation log."),
     (r"\bjj\s+op(?:eration)?\s+revert\b(?![^;&|]*\b[0-9a-f]{4,}\b)",
      "jj op revert with no operation id defaults to @, the newest operation in "
      "this shared repository, which is usually another agent's. Pass the id of "
@@ -40,7 +46,23 @@ RULES = [
 ]
 
 
-def denial(command):
+UPDATE_STALE = re.compile(r"\bjj\s+workspace\s+update-stale\b")
+UPDATE_STALE_MESSAGE = (
+    "jj workspace update-stale is forbidden in a /daniel workspace. It "
+    "rewrites the files on disk to match a commit, so every edit made since "
+    "the last snapshot is discarded, and it can leave the change divergent, so "
+    "jj status and jj diff in this directory then report the empty side and "
+    "the work looks lost. The workspace going stale is expected and harmless: "
+    "it is deleted at cleanup. Read its content from the original workspace "
+    "with jj diff --git -r '<workspace-name>@'. If the change is already "
+    "divergent, name the side that holds the files with a change offset, "
+    "<change-id>/0 for the most recent and /1 for the one before."
+)
+
+
+def denial(command, cwd=""):
+    if UPDATE_STALE.search(command) and "daniel-workspaces" in command + cwd:
+        return UPDATE_STALE_MESSAGE
     for pattern, message in RULES:
         if re.search(pattern, command):
             return message
@@ -52,7 +74,10 @@ def main():
         event = json.load(sys.stdin)
     except ValueError:
         return 0
-    message = denial((event.get("tool_input") or {}).get("command", ""))
+    message = denial(
+        (event.get("tool_input") or {}).get("command", ""),
+        event.get("cwd", ""),
+    )
     if not message:
         return 0
     print(message, file=sys.stderr)
@@ -61,20 +86,26 @@ def main():
 
 def test():
     assert denial("jj op restore abc") == RULES[0][1]
+    assert denial("jj op abandon ..abc") == RULES[2][1]
+    assert denial("jj workspace update-stale",
+                  "/x/daniel-workspaces/feat") == UPDATE_STALE_MESSAGE
+    assert denial("cd /x/daniel-workspaces/feat && jj workspace update-stale",
+                  "/x/repo") == UPDATE_STALE_MESSAGE
+    assert denial("jj workspace update-stale", "/x/repo") is None
     assert denial("jj undo") == RULES[1][1]
     assert denial("jj redo") == RULES[1][1]
-    assert denial("jj op revert") == RULES[2][1]
-    assert denial("jj op revert --what repo") == RULES[2][1]
+    assert denial("jj op revert") == RULES[3][1]
+    assert denial("jj op revert --what repo") == RULES[3][1]
     assert denial("jj op revert 197d348a40f5") is None
     assert denial("jj operation revert d79d4492643c --what repo") is None
-    assert denial("jj diff") == RULES[3][1]
-    assert denial("jj diff -r @ src/a.ts") == RULES[3][1]
+    assert denial("jj diff") == RULES[4][1]
+    assert denial("jj diff -r @ src/a.ts") == RULES[4][1]
     assert denial("jj diff --git src/a.ts") is None
     assert denial("jj diff --summary -r 'ws@'") is None
     assert denial("jj diff --name-only") is None
     assert denial("jj diff -s") is None
-    assert denial("yarn vitest run foo") == RULES[4][1]
-    assert denial("npx tsc") == RULES[5][1]
+    assert denial("yarn vitest run foo") == RULES[5][1]
+    assert denial("npx tsc") == RULES[6][1]
     # The regression these rules used to hit: substitution is not a match.
     assert denial("jj workspace add $(pwd)/../daniel-workspaces/feature") is None
     assert denial("ws=$(pwd)/x; for f in $ws/*; do echo $f; done") is None

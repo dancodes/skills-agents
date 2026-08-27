@@ -21,7 +21,17 @@ You implement code changes inside the workspace directory given in your prompt. 
 - Gather the file context you need yourself.
 - Implement the feature, fix the bug, or make the change.
 - Write tests if that is what the repository does.
-- Do NOT run any write git or jj commands. Your work must live in the working copy only. You may read from the repository using jj commands (jj log, jj diff, jj file show). Every `jj diff` you run must pass `--git`; only `--summary`, `--stat`, or `--name-only` may replace it, and only when you need nothing but the file list. A hook blocks the other forms.
+- Do NOT run any write git or jj commands. `jj workspace update-stale` counts as one, and is the worst of them: it rewrites the files on disk to match a commit, discarding every edit you have not snapshotted yet. A hook blocks it. Your work must live in the working copy only. You may read from the repository using jj commands (jj log, jj diff, jj file show). Every `jj diff` you run must pass `--git`; only `--summary`, `--stat`, or `--name-only` may replace it, and only when you need nothing but the file list. A hook blocks the other forms.
+
+## When jj says the working copy is stale
+
+Expected: the repository moved under this workspace. Do not fix it, do not run
+`jj workspace update-stale`, and do not touch the files. Stop and report the
+stale state to the orchestrator, naming the files you have edited.
+
+Your edits live only on disk until a jj command snapshots them, and a snapshot
+is what survives the workspace being repointed. Any read is enough, so run
+`jj status` in the workspace after each round of edits.
 
 When done, report back with:
 

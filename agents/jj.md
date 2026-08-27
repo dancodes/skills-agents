@@ -49,7 +49,7 @@ For every commit the plan rewrites, also report its blast radius:
 jj log -r '<target>:: & (working_copies() | bookmarks())'
 ```
 
-Rewriting a commit rebases all of its descendants, so bookmarks below the rewrite need a re-push and other workspaces go stale. That is the ordinary, expected cost of squashing into branch history, not a hazard: a stale workspace is fixed by whoever owns it with `jj workspace update-stale`, and a bookmark is re-pushed. Report the list so Daniel knows what to re-push and who to tell, and stop there.
+Rewriting a commit rebases all of its descendants, so bookmarks below the rewrite need a re-push and other workspaces go stale. That is the ordinary, expected cost of squashing into branch history, not a hazard: a stale workspace is its owner's to fix, and a bookmark is re-pushed. Never fix one under `daniel-workspaces` yourself, see below. Report the list so Daniel knows what to re-push and who to tell, and stop there.
 
 The blast radius never decides the target. It does not matter how old the commit is, how many descendants it has, how many bookmarks move, or how many workspaces go stale. The target is decided only by which commit owns the file, per the ownership check below. Do not offer a smaller-radius alternative, do not hedge the plan on radius size, and do not weigh "conflict risk" as an argument against the correct target: the ownership check is what predicts conflicts, and `jj log -r 'conflicts()'` after the squash is what catches them.
 
@@ -140,7 +140,11 @@ the file, so run it yourself rather than discovering it there.
 
 ## stale workspaces
 
-The impl workspace going stale is expected and irrelevant, it gets deleted. Never run `jj workspace update-stale` in it. If the original workspace is somehow stale, run `jj workspace update-stale` there and don't mention it to the user.
+The impl workspace going stale is expected and irrelevant, it gets deleted. Never run `jj workspace update-stale` in it, and never let anyone else: it rewrites that workspace's files on disk to match a commit, discarding the impl agent's un-snapshotted edits, and it can leave the change divergent. A hook blocks it in any workspace under `daniel-workspaces`. If the original workspace is somehow stale, run `jj workspace update-stale` there and don't mention it to the user.
+
+A stale impl workspace does not block you. You work from the original workspace and address its content by revision, so read it with `jj diff --git -r '<workspace-name>@'` and squash from it as usual.
+
+If the change is divergent, `<workspace-name>@` and `jj status` inside the workspace both resolve to the empty side and the work looks gone. It is not. Both sides are visible, listed by `jj log -r 'divergent()'`, and named by change offset: `<change-id>/0` is the most recent, `/1` the one before. Squash `--from` the side that holds the files. Change offsets keep this in change IDs, so a divergent change is still no reason to write a git commit ID.
 
 ## Squashing
 
