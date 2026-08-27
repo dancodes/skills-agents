@@ -45,11 +45,12 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/park-workspace.sh" <workspace-path> "<one-line message>"
    ```
-   Parking snapshots the working copy, describes it, and creates a
-   `handoff/<workspace-name>` bookmark. Derive the message from the request, one
-   line, no mention of Claude or a co-author. Relay the script's output verbatim:
-   the bookmark, the change ID, the file list, and any scaffolding line it
-   printed.
+   Parking snapshots the working copy once, then describes that change and
+   points a `handoff/<workspace-name>` bookmark at it by change ID, every
+   command after the snapshot passing `--ignore-working-copy`. Derive the
+   message from the request, one line, no mention of Claude or a co-author.
+   Relay the script's output verbatim: the bookmark, the change ID, the file
+   list, and any scaffolding line it printed.
 6. Stop. Nothing else happens in this run. Do not spawn the `jj` agent, do not
    squash, do not delete the workspace, and do not run any further command in
    the workspace directory. Tell Daniel the work is parked under
@@ -78,12 +79,17 @@ that was never snapshotted. A hook blocks it in a workspace under
 `daniel-workspaces`.
 
 Confirm the agent has copied its edited files to its scratchpad, then read the
-snapshotted content from this workspace, never from inside the stale one:
+snapshotted content from this workspace, never from inside the stale one. Name
+the commit by its change ID, never by a working-copy reference like
+`<workspace-name>@`, which resolves against a working copy you are not in:
 
 ```
-jj log -r 'divergent()'
-jj diff --summary -r '<workspace-name>@'
+jj --ignore-working-copy log -r 'divergent()'
+jj --ignore-working-copy workspace list
+jj --ignore-working-copy diff --summary -r <change-id>
 ```
+
+`workspace list` prints each workspace's change ID next to its name.
 
 If the change is divergent, both sides are visible and named by change offset:
 `<change-id>/0` is the most recent, `/1` the one before. The side holding the

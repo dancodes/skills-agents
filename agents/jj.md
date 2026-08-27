@@ -188,7 +188,12 @@ misplaced content.
 
 ## Conflicts
 
-After every squash, run `jj log -r 'conflicts()'`. When it is not empty:
+After every squash, run `jj log -r 'conflicts()'`. Only conflicts inside the
+feature line are yours. A `handoff/*` bookmark that went conflicted because the
+squash rebased it is expected and stays conflicted: report it by name and keep
+executing the plan. The next integrator lands it against the new base.
+
+When a feature-line commit is conflicted:
 
 1. Stop. Run no further squashes from the plan.
 2. The usual cause is the wrong-target squash above: content landed in a commit that never touched the file, and the descendants that do touch it conflict. Correct it forward by squashing that content into the commit it belonged in.

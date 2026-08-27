@@ -41,21 +41,25 @@ is the integration workspace: never `cd` into a parked workspace.
    If it fails, another integration run holds it. Relay its output to Daniel and
    stop. Do not remove the lock directory yourself, and do not proceed without
    it.
-2. List what is parked:
+2. Print the picture of the run: the feature line's revisions with the files
+   each one owns, and the same per handoff bookmark.
    ```
-   jj log -r 'bookmarks(glob:"handoff/*")' --no-graph \
-     -T 'bookmarks.join(" ") ++ "  " ++ change_id.shortest(8) ++ "  " ++ description.first_line() ++ "\n"'
+   "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel-integrate/branch-files.sh"
    jj workspace list
    ```
-   Nothing parked means nothing to do: release the lock and say so.
+   It excludes the branch root's own changeset. If `trunk()` is not this
+   branch's root, resolve the root from `jj log` and pass it as the one
+   argument. `Nothing parked` under Handoffs means there is nothing to do:
+   release the lock and say so.
 3. Relay the list to Daniel with the file count per handoff, and confirm which
    handoffs to land and in what order. Refactors first, then backend, then
    frontend, per the order the `jj` agent enforces. If Daniel named handoffs in
    the invocation, confirm that list rather than asking again.
-4. Spawn one `jj` agent for the whole run, handing it this workspace's directory
-   and the confirmed handoff bookmarks in order. It plans only. Relay its plan
-   (per-file target, commit vs squash, messages, blast radius) and wait for
-   approval.
+4. Spawn one `jj` agent for the whole run, handing it this workspace's directory,
+   the confirmed handoff bookmarks in order, and the `branch-files.sh` output so
+   it starts from the per-revision file ownership instead of rebuilding it. It
+   plans only. Relay its plan (per-file target, commit vs squash, messages,
+   blast radius) and wait for approval.
 5. If Daniel rejects the plan: send the feedback to the same running `jj` agent
    via SendMessage. It replans without touching the repository.
 6. If Daniel approves: tell the same `jj` agent to execute. It works in batches
@@ -94,6 +98,13 @@ rm -rf ../daniel-workspaces/<name>
 The bookmark has to go: after the squash its commit is empty, and leaving the
 bookmark keeps that empty commit visible and makes the handoff look unlanded.
 Give Daniel the `rm -rf` with a `!` prefix so he can run it in his chat window.
+
+## A handoff that goes conflicted mid-run
+
+Not yours to fix. Squashing into the feature line rebases everything parked on
+top of it, and a handoff that touches the same files comes out conflicted. Relay
+which bookmarks it hit and let the `jj` agent finish the plan. The next
+`/daniel-integrate` run lands them against the new base.
 
 ## A parked workspace that has gone stale
 

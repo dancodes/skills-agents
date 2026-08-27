@@ -62,6 +62,19 @@ If the change is already divergent, both sides are visible in
 most recent, `/1` the one before. Report which side holds your files. Do not try
 to resolve the divergence yourself.
 
+## Before you report: the comment pass
+
+Once the implementation is done and snapshotted, invoke the `no-comments` skill.
+It is not optional and it is not a human's call, it runs on every round of edits
+before you report, including after follow-up feedback.
+
+The pass has to finish before you report. It spawns an agent that runs in the
+background, and the spawn call returning is not that agent finishing. Wait for
+its report, vet it, apply what you accept, and only then write yours, with the
+pass's one-line result folded in. Ending your turn while the pass is still
+running is a failed run: the orchestrator takes your report as the signal the
+work is ready to park, and parks comments you never reviewed.
+
 When done, report back with:
 
 - The result of the work.

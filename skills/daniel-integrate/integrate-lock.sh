@@ -13,10 +13,17 @@ if [[ $action != acquire && $action != release && $action != status ]]; then
   exit 2
 fi
 
-root=$(jj workspace root)
+root=$(jj --ignore-working-copy workspace root)
 repo=$root/.jj/repo
-# In a secondary workspace .jj/repo is a file holding the path to the real one.
-[[ -f $repo ]] && repo=$(cat -- "$repo")
+if [[ -f $repo ]]; then
+  # In a secondary workspace .jj/repo is a file holding the path to the real
+  # repo directory, and that path is relative to .jj/, not to the cwd. Resolving
+  # it from anywhere else points the lock at a directory that does not exist,
+  # so mkdir fails with ENOENT and every acquire reads as "already in progress".
+  repo=$(cd -- "$root/.jj" && cd -- "$(cat -- "$repo")" && pwd)
+fi
+# Next to the repo directory, inside .jj/, so it is shared by every attached
+# workspace and outside any working copy.
 lock=$(dirname -- "$repo")/daniel-integrate.lock
 
 case $action in

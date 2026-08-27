@@ -16,19 +16,22 @@ bookmark=handoff/$name
 
 cd -- "$workspace"
 
-# jj describe snapshots the working copy before rewriting the description, so
-# this is what moves the edits off disk. It touches no commit but this one.
-jj describe -m "$2"
-jj bookmark create "$bookmark" -r @
+# The only command here without --ignore-working-copy, so the only one that
+# takes the working-copy lock. It snapshots the edits off disk and names the
+# change they landed in; everything after it addresses that change by ID.
+change=$(jj log --no-graph -r @ -T 'change_id.shortest(12)')
+
+jj --ignore-working-copy describe -r "$change" -m "$2"
+jj --ignore-working-copy bookmark create "$bookmark" -r "$change"
 
 printf '\nParked at %s\n' "$bookmark"
-jj log --no-graph -r "$bookmark" \
+jj --ignore-working-copy log --no-graph -r "$change" \
   -T 'change_id.shortest(8) ++ "  " ++ description.first_line() ++ "\n"'
 
 printf '\nFiles:\n'
-jj diff --summary -r "$bookmark"
+jj --ignore-working-copy diff --summary -r "$change"
 
-scaffolding=$(jj diff --summary -r "$bookmark" \
+scaffolding=$(jj --ignore-working-copy diff --summary -r "$change" \
   | grep -E 'node_modules/|src/modules/api/generated' || true)
 if [[ -n $scaffolding ]]; then
   printf '\nScaffolding in the snapshot, must not reach a commit:\n%s\n' "$scaffolding"

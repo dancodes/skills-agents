@@ -39,6 +39,11 @@ def rows(revset, cwd, run):
     return [line.split("\t") for line in out.splitlines() if line.strip()]
 
 
+def parked(bookmarks):
+    names = [b.rstrip("*?") for b in bookmarks.split()]
+    return bool(names) and all(n.startswith("handoff/") for n in names)
+
+
 def warning(command, cwd, run=jj):
     if not REWRITES.search(command or ""):
         return None
@@ -56,13 +61,20 @@ def warning(command, cwd, run=jj):
         lines.append(f"  ... and {len(conflicted) - LISTED} more")
     if live:
         lines.append(f"\n{len(live)} of these are working copies other agents are sitting on.")
-    lines.append(
-        "\nStop. Run no further squashes from the plan. The usual cause is a file\n"
-        "squashed into a commit that never touched it, so correct it forward by\n"
-        "squashing that content into the commit that owns it, then re-check\n"
-        "`jj log -r 'conflicts()'`. Never jj undo: it has no target and takes\n"
-        "whichever operation landed last in this shared repository."
-    )
+    if all(parked(bookmarks) for _, bookmarks, _ in conflicted):
+        lines.append(
+            "\nAll of these are parked handoff bookmarks, conflicted because the\n"
+            "rebase moved them onto the new base. Not yours to fix: keep executing\n"
+            "the plan and name them in your report. The next integrator lands them."
+        )
+    else:
+        lines.append(
+            "\nStop. Run no further squashes from the plan. The usual cause is a file\n"
+            "squashed into a commit that never touched it, so correct it forward by\n"
+            "squashing that content into the commit that owns it, then re-check\n"
+            "`jj log -r 'conflicts()'`. Never jj undo: it has no target and takes\n"
+            "whichever operation landed last in this shared repository."
+        )
     return "\n".join(lines)
 
 
@@ -99,6 +111,14 @@ def test():
     assert "another workspace's working copy" in text
     assert "(no description)" in text
     assert "1 of these are working copies" in text
+    assert "Stop. Run no further squashes" in text
+
+    only_parked = "mxxluvkm\thandoff/backend\tsection previews\n"
+    text = warning("jj squash --into abc a.ts", None,
+                   lambda a, c: "" if "working_copies" in a[1] else only_parked)
+    assert "Not yours to fix" in text, text
+    assert "Stop. Run no further squashes" not in text
+
     assert warning("jj squash --into xykttnxu a.ts", None, lambda a, c: "") is None
     assert warning("jj log -r 'conflicts()'", None, fake) is None
     print("ok")
