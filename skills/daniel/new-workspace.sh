@@ -13,6 +13,14 @@ fi
 source=$(pwd)
 workspace=$source/../daniel-workspaces/$1
 
+# jj snapshots the whole working copy, so the links below would land in the
+# parked commit and keep it alive as a dangling head after integration. A
+# .gitignore listing itself keeps both the links and itself out of every snapshot.
+ignore() {
+  mkdir -p -- "$1"
+  [[ -e $1/.gitignore ]] || printf '%s\n.gitignore\n' "$2" > "$1/.gitignore"
+}
+
 mkdir -p "$(dirname -- "$workspace")"
 jj workspace add "$workspace"
 workspace=$(cd -- "$workspace" && pwd)
@@ -23,7 +31,7 @@ workspace=$(cd -- "$workspace" && pwd)
 # mid-flight.
 for modules in node_modules */node_modules; do
   [[ -d $modules && ! -e $workspace/$modules ]] || continue
-  mkdir -p "$workspace/$modules"
+  ignore "$workspace/$modules" '*'
   find "$source/$modules" -mindepth 1 -maxdepth 1 \
     ! -name '.vite*' ! -name '.cache' \
     -exec ln -s {} "$workspace/$modules/" \;
@@ -33,7 +41,7 @@ done
 # `Cannot find module 'src/modules/api/generated'`.
 generated=frontend/src/modules/api/generated
 if [[ -e $generated && ! -e $workspace/$generated ]]; then
-  mkdir -p "$(dirname -- "$workspace/$generated")"
+  ignore "$(dirname -- "$workspace/$generated")" "$(basename -- "$generated")"
   ln -s "$source/$generated" "$workspace/$generated"
 fi
 

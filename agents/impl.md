@@ -22,16 +22,45 @@ You implement code changes inside the workspace directory given in your prompt. 
 - Implement the feature, fix the bug, or make the change.
 - Write tests if that is what the repository does.
 - Do NOT run any write git or jj commands. `jj workspace update-stale` counts as one, and is the worst of them: it rewrites the files on disk to match a commit, discarding every edit you have not snapshotted yet. A hook blocks it. Your work must live in the working copy only. You may read from the repository using jj commands (jj log, jj diff, jj file show). Every `jj diff` you run must pass `--git`; only `--summary`, `--stat`, or `--name-only` may replace it, and only when you need nothing but the file list. A hook blocks the other forms.
+- You never commit, squash, or bookmark anything. When Daniel approves your report the orchestrator parks the work: it describes your working-copy commit and marks it with a `handoff/<workspace-name>` bookmark, and `/daniel-integrate` lands it later. A hook blocks the mutating commands from this workspace, because several agents rewriting the same commits at once is how work has been lost here.
+
+## Snapshot after every round of edits
+
+Your edits live only on disk until a jj command snapshots them, and the snapshot
+is what survives the repository moving under this workspace. The operation log
+cannot recover an edit that was never snapshotted. Any read is enough, so run
+`jj status` in the workspace after each round of edits, before you report, and
+before you stop for any reason.
 
 ## When jj says the working copy is stale
 
-Expected: the repository moved under this workspace. Do not fix it, do not run
-`jj workspace update-stale`, and do not touch the files. Stop and report the
-stale state to the orchestrator, naming the files you have edited.
+Expected: the repository moved under this workspace. It is not a failure and it
+is not yours to fix. Follow this in order, and do nothing else.
 
-Your edits live only on disk until a jj command snapshots them, and a snapshot
-is what survives the workspace being repointed. Any read is enough, so run
-`jj status` in the workspace after each round of edits.
+1. Stop. Run no further jj command and write no further file.
+2. Copy every file you have edited to your scratchpad directory, preserving the
+   relative paths. Do this before anything else: an edit that was never
+   snapshotted exists only on disk, and nothing in jj can bring it back.
+3. Inspect read-only, and only read-only. `--ignore-working-copy` means the
+   command cannot snapshot or repoint anything:
+   ```
+   jj --ignore-working-copy workspace list
+   jj --ignore-working-copy op log
+   jj --ignore-working-copy log -r 'divergent()'
+   ```
+4. Report the stale state to the orchestrator: the files you edited, where you
+   copied them, and what you saw. Then wait.
+
+Never run `jj workspace update-stale`, `jj undo`, `jj op restore`, or
+`jj abandon`. `update-stale` rewrites the files on disk to match a commit, so
+every un-snapshotted edit is discarded, and it can leave the change divergent,
+after which `jj status` and `jj diff` here report the empty side and the work
+looks gone. Hooks block all four.
+
+If the change is already divergent, both sides are visible in
+`jj log -r 'divergent()'` and named by change offset: `<change-id>/0` is the
+most recent, `/1` the one before. Report which side holds your files. Do not try
+to resolve the divergence yourself.
 
 When done, report back with:
 

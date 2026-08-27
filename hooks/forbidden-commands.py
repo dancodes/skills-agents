@@ -43,6 +43,18 @@ RULES = [
     (r"\bnpx\b",
      "npx is forbidden. Use executables already present in the working "
      "directory (yarn scripts, ./node_modules/.bin) instead."),
+    (r"\bjj\s+(?:new|edit)\b",
+     "jj new and jj edit are forbidden: they move the working copy of whichever "
+     "workspace they run in, and workspaces here belong to other agents. Work "
+     "is parked with skills/daniel/park-workspace.sh and integrated by "
+     "/daniel-integrate, neither of which needs to move a working copy."),
+    (r"\bjj\s+(?:abandon|restore)\b",
+     "jj abandon and jj restore are forbidden: both discard content that only "
+     "exists in a working copy or a commit another agent is sitting on. Correct "
+     "work forward with another squash instead."),
+    (r"\bgit\s+stash\b",
+     "git stash is forbidden. This repository uses jj, and stashing moves files "
+     "out from under every other agent working here."),
 ]
 
 
@@ -56,16 +68,43 @@ UPDATE_STALE_MESSAGE = (
     "it is deleted at cleanup. Read its content from the original workspace "
     "with jj diff --git -r '<workspace-name>@'. If the change is already "
     "divergent, name the side that holds the files with a change offset, "
-    "<change-id>/0 for the most recent and /1 for the one before."
+    "<change-id>/0 for the most recent and /1 for the one before.\n\n"
+    "Before anything else: copy every file you edited to your scratchpad "
+    "directory. Edits that were never snapshotted exist only on disk, and the "
+    "operation log cannot recover them. Then stop and report the stale state, "
+    "naming the files you edited."
 )
 
 
+WORKSPACE_WRITE = re.compile(
+    r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|backout|commit"
+    r"|bookmark\s+(?:move|set|delete|forget|track|untrack)"
+    r"|workspace\s+forget|git\s+(?:push|fetch))\b"
+)
+WORKSPACE_WRITE_MESSAGE = (
+    "This command rewrites shared repository state from inside a /daniel "
+    "workspace. Only the integration workspace may do that, and only under the "
+    "/daniel-integrate lock: two squashes landing concurrently leave the change "
+    "divergent and every other workspace stale, which is how work has been lost "
+    "here before. An impl workspace parks its finished work with "
+    "skills/daniel/park-workspace.sh, which describes the working-copy commit "
+    "and marks it with a handoff/<workspace-name> bookmark, and then stops. "
+    "/daniel-integrate squashes that bookmark into the feature line later."
+)
+
+
+def in_daniel_workspace(command, cwd):
+    return "daniel-workspaces" in command + cwd
+
+
 def denial(command, cwd=""):
-    if UPDATE_STALE.search(command) and "daniel-workspaces" in command + cwd:
+    if UPDATE_STALE.search(command) and in_daniel_workspace(command, cwd):
         return UPDATE_STALE_MESSAGE
     for pattern, message in RULES:
         if re.search(pattern, command):
             return message
+    if WORKSPACE_WRITE.search(command) and in_daniel_workspace(command, cwd):
+        return WORKSPACE_WRITE_MESSAGE
     return None
 
 
@@ -92,6 +131,23 @@ def test():
     assert denial("cd /x/daniel-workspaces/feat && jj workspace update-stale",
                   "/x/repo") == UPDATE_STALE_MESSAGE
     assert denial("jj workspace update-stale", "/x/repo") is None
+    assert denial("jj new") == RULES[7][1]
+    assert denial("jj edit xyz") == RULES[7][1]
+    assert denial("jj abandon xyz") == RULES[8][1]
+    assert denial("jj restore src/a.ts") == RULES[8][1]
+    assert denial("git stash") == RULES[9][1]
+    assert denial("jj squash --into abc a.ts",
+                  "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj bookmark delete handoff/feat",
+                  "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj git push", "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
+    # Parking is the one write an impl workspace makes, and it stays allowed.
+    assert denial("jj describe -m 'feat: x'", "/x/daniel-workspaces/feat") is None
+    assert denial("jj bookmark create handoff/feat -r @",
+                  "/x/daniel-workspaces/feat") is None
+    assert denial("jj status", "/x/daniel-workspaces/feat") is None
+    # Integration runs from the integration workspace, so the same squash passes.
+    assert denial("jj squash --from handoff/feat --into abc -u a.ts", "/x/repo") is None
     assert denial("jj undo") == RULES[1][1]
     assert denial("jj redo") == RULES[1][1]
     assert denial("jj op revert") == RULES[3][1]

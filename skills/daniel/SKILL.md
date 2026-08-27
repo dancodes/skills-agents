@@ -1,6 +1,6 @@
 ---
 name: daniel
-description: Orchestrate the implementation of a feature, the fixing of a bug, or other code that will be committed, using the impl and jj agents. Use when the user invokes /daniel with a description or a path to a markdown file.
+description: Orchestrate the implementation of a feature, the fixing of a bug, or other code that will be committed, using the impl agent, and park the result on a handoff bookmark for /daniel-integrate to land. Use when the user invokes /daniel with a description or a path to a markdown file.
 hooks:
   PreToolUse:
     - matcher: Bash
@@ -41,8 +41,51 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    never decide it yourself.
 3. Spawn the `impl` agent, handing it the workspace directory and the full request. Relay its report (result, modified files, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. Never trim or summarise the hunks, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them.
 4. If Daniel does not approve: send the feedback to the same running `impl` agent via SendMessage. It already has the file context. Spawn a fresh `impl` agent only if the previous one is dead or Daniel asks for a clean take.
-5. If Daniel approves: spawn the `jj` agent, handing it both the impl workspace directory and the original workspace directory (this conversation's cwd). It runs all jj commands from the original workspace so that workspace never goes stale. It plans only, it commits nothing. Relay its plan (commit vs squash vs split, target revisions, files, messages) to Daniel and wait for approval.
-6. If Daniel rejects the plan: send the feedback to the same running `jj` agent via SendMessage. It replans and reports again, still without touching the repository.
-7. If Daniel approves the plan: tell the same `jj` agent to execute it. Relay its report of what was committed or squashed and wait for approval.
-8. If Daniel rejects the executed result: send the feedback to the same running `jj` agent. It undoes and redoes its own commits.
-9. If Daniel approves the commits: tell the same `jj` agent to clean up (verify the workspace is clean, then delete it). Relay confirmation and finish by deleting the workspace folder.
+5. If Daniel approves: park the work.
+   ```
+   "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/park-workspace.sh" <workspace-path> "<one-line message>"
+   ```
+   Parking snapshots the working copy, describes it, and creates a
+   `handoff/<workspace-name>` bookmark. Derive the message from the request, one
+   line, no mention of Claude or a co-author. Relay the script's output verbatim:
+   the bookmark, the change ID, the file list, and any scaffolding line it
+   printed.
+6. Stop. Nothing else happens in this run. Do not spawn the `jj` agent, do not
+   squash, do not delete the workspace, and do not run any further command in
+   the workspace directory. Tell Daniel the work is parked under
+   `handoff/<workspace-name>` and that `/daniel-integrate` lands it when he is
+   ready.
+
+## Why parking, and not committing here
+
+Integration is single-writer. `/daniel-integrate` is the only thing that
+rewrites the feature line, it runs in the original workspace, and it holds a
+lock while it does, so two runs finishing at once cannot rewrite the same
+commits concurrently. That is what leaves changes divergent, other workspaces
+stale, and un-snapshotted edits gone.
+
+This run's only job is to leave the work on a bookmark that survives the
+workspace going stale or being forgotten.
+
+## When the impl agent reports the working copy is stale
+
+Expected: the repository moved under that workspace. It is not a failure and
+nothing is lost as long as the edits were snapshotted.
+
+Do not tell the agent to run `jj workspace update-stale`, and do not run it
+yourself. It rewrites the files on disk to match a commit, discarding every edit
+that was never snapshotted. A hook blocks it in a workspace under
+`daniel-workspaces`.
+
+Confirm the agent has copied its edited files to its scratchpad, then read the
+snapshotted content from this workspace, never from inside the stale one:
+
+```
+jj log -r 'divergent()'
+jj diff --summary -r '<workspace-name>@'
+```
+
+If the change is divergent, both sides are visible and named by change offset:
+`<change-id>/0` is the most recent, `/1` the one before. The side holding the
+files is the one to park from. Relay what you found to Daniel and let him decide
+before anything else runs.

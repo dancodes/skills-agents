@@ -1,0 +1,26 @@
+# skills-agents
+
+Claude Code skills, agents and hooks for implementing changes in a jj repository
+that several agents work in at once.
+
+## Install
+
+```
+./install.sh
+```
+
+Copies `skills/`, `agents/` and `hooks/` into `~/.claude` (or `$CLAUDE_HOME`).
+
+## Flow
+
+| Stage | Who | What |
+|---|---|---|
+| implement | `impl` in its workspace | edits + `jj status` to snapshot; never commits |
+| park | `/daniel` via `park-workspace.sh` | `jj describe` + `jj bookmark create handoff/<name>`, then stops |
+| integrate | `/daniel-integrate` → `jj` agent | acquires lock, squashes `handoff/*` into the feature line, deletes bookmark, forgets workspace, releases lock |
+
+Implementation and integration are separate invocations. `/daniel` leaves the
+work parked and stops. `/daniel-integrate` is the only writer to the feature
+line, and it holds a lock for its whole run, so two runs finishing at once
+cannot rewrite the same commits concurrently. That is what leaves changes
+divergent, other workspaces stale, and un-snapshotted edits gone.
