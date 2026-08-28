@@ -43,6 +43,14 @@ RULES = [
     (r"\bnpx\b",
      "npx is forbidden. Use executables already present in the working "
      "directory (yarn scripts, ./node_modules/.bin) instead."),
+    (r"\byarn\s+typecheck\b|\b(?:tsgo|tsc)\b",
+     "Running the typechecker directly is forbidden. Every workspace on this "
+     "machine shares its RAM, tsgo peaks around 4GB, and several at once "
+     "thrash the machine until the OOM killer fires. Run\n\n"
+     "    python3 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/typecheck.py\"\n\n"
+     "from the directory you would have typechecked in. It takes the same "
+     "arguments, waits for its turn, and then runs yarn typecheck. Give the "
+     "Bash call a timeout of 600000 so the wait cannot cut the run short."),
     (r"\bjj\s+(?:new|edit)\b",
      "jj new and jj edit are forbidden: they move the working copy of whichever "
      "workspace they run in, and workspaces here belong to other agents. Work "
@@ -131,11 +139,11 @@ def test():
     assert denial("cd /x/daniel-workspaces/feat && jj workspace update-stale",
                   "/x/repo") == UPDATE_STALE_MESSAGE
     assert denial("jj workspace update-stale", "/x/repo") is None
-    assert denial("jj new") == RULES[7][1]
-    assert denial("jj edit xyz") == RULES[7][1]
-    assert denial("jj abandon xyz") == RULES[8][1]
-    assert denial("jj restore src/a.ts") == RULES[8][1]
-    assert denial("git stash") == RULES[9][1]
+    assert denial("jj new") == RULES[8][1]
+    assert denial("jj edit xyz") == RULES[8][1]
+    assert denial("jj abandon xyz") == RULES[9][1]
+    assert denial("jj restore src/a.ts") == RULES[9][1]
+    assert denial("git stash") == RULES[10][1]
     assert denial("jj squash --into abc a.ts",
                   "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
     assert denial("jj bookmark delete handoff/feat",
@@ -161,7 +169,16 @@ def test():
     assert denial("jj diff --name-only") is None
     assert denial("jj diff -s") is None
     assert denial("yarn vitest run foo") == RULES[5][1]
-    assert denial("npx tsc") == RULES[6][1]
+    assert denial("npx eslint .") == RULES[6][1]
+    assert denial("yarn typecheck") == RULES[7][1]
+    assert denial("yarn typecheck --watch") == RULES[7][1]
+    assert denial("cd ../ws && yarn typecheck") == RULES[7][1]
+    assert denial("./node_modules/.bin/tsgo --noEmit") == RULES[7][1]
+    assert denial("yarn tsc -p .") == RULES[7][1]
+    assert denial('python3 "$HOME/.claude/skills/daniel/typecheck.py"') is None
+    assert denial(
+        "TYPECHECK_SLOTS=2 python3 ~/.claude/skills/daniel/typecheck.py") is None
+    assert denial("cat tsconfig.json") is None
     # The regression these rules used to hit: substitution is not a match.
     assert denial("jj workspace add $(pwd)/../daniel-workspaces/feature") is None
     assert denial("ws=$(pwd)/x; for f in $ws/*; do echo $f; done") is None
