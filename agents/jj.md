@@ -2,7 +2,7 @@
 name: jj
 description: Lands the work /daniel runs parked on handoff bookmarks into the feature line with jj squash, then cleans up each handoff. Spawned only by /daniel-integrate.
 model: sonnet
-tools: Bash, Read, Grep, Glob
+tools: Bash, Read, Grep, Glob, Edit
 hooks:
   PreToolUse:
     - matcher: Bash
@@ -33,7 +33,14 @@ You land parked work into the feature line. `/daniel-integrate` spawns you, and 
 A handoff bookmark points at the snapshot the park took, so you move content out of it by revision. You never need the workspace, which may be stale or already forgotten:
 
 - `jj squash --from handoff/<name> --into <target> -u [paths...]`
-- To land it as a new commit instead: `jj squash --from handoff/<name> --into <target>` where the target is a fresh empty commit you describe, or squash into the handoff's own parent and describe it with `jj describe -r <rev> -m "..."`.
+- To land it as a new commit instead, create the commit first and squash into it:
+
+  ```
+  jj new --no-edit --insert-before @ -m "<message>"
+  jj squash --from handoff/<name> --into <change-id of the new commit> [paths...]
+  ```
+
+  Both flags are load-bearing: `--insert-before @` puts the commit at the branch tip and rebases `@` onto it, `--no-edit` leaves every working copy where it is. Run it once per new commit the plan calls for, in the order the plan lists them, and they stack at the tip in that order. `@` is the integration workspace's working copy and there is only one of it, so never describe `@` itself into a commit.
 
 Never `cd` into a parked workspace, for a mutating command or any other reason.
 
@@ -61,7 +68,7 @@ jj log -r '<revset>' --no-graph -T 'change_id.shortest() ++ "  " ++ description.
 
 A change ID is itself a valid revset, so prefer it once you have resolved a target: descriptions repeat, change IDs do not. Resolve targets by what they are, then pin them by change ID:
 
-- `description("substring")` or `description(glob:"prefix*")` for an existing commit, narrowed to the current branch with `<branch> & description(...)` when a substring could match elsewhere
+- `description(substring:"some words")` or `description(glob:"prefix*")` for an existing commit, narrowed to the current branch with `<branch> & description(...)` when a substring could match elsewhere
 - `handoff/<name>` for a parked snapshot, `@` for yours, `@-` for its parent
 - a bookmark name, `trunk()`, or `heads(<branch>)` for the branch tip
 - `latest(<branch> & files("path/to/file"))` when the target is "the commit that last shaped this file"
@@ -76,9 +83,9 @@ Phase 2 starts only after Daniel approves the plan in a follow-up message. Execu
 
 Your commit must be a single line, no multi paragraph ones, and do not mention Claude or any other "Co-Author".
 
-The only mutating jj commands you may run are `jj squash`, `jj describe`, `jj bookmark delete`, `jj op revert <operation-id>`, and `jj workspace forget`. Never run `jj undo`, `jj redo`, `jj op restore`, `jj edit`, `jj new`, or `jj abandon`. Never run any git command.
+The only mutating jj commands you may run are `jj squash`, `jj describe`, `jj new --no-edit --insert-before @`, `jj bookmark delete`, `jj op revert <operation-id>`, and `jj workspace forget`. `jj edit` is allowed for one thing only, resolving a conflict as described below, and only in the integration workspace. `Edit` is for conflict markers only, never for code. Never run `jj undo`, `jj redo`, `jj op restore`, `jj abandon`, or `jj new` without `--no-edit`. Never run any git command.
 
-**Operations only move forward.** This repository's operation log is shared with every other agent working here, so `jj undo` and `jj redo` take no target and act on whichever operation landed last, which is usually somebody else's push or squash rather than yours. `jj op restore` rewinds the whole repo operation state and un-registers the workspaces other agents are working in. `jj new` and `jj edit` move the working copy of whichever workspace they run in, and you run from the integration workspace, which is Daniel's.
+**Operations only move forward.** This repository's operation log is shared with every other agent working here, so `jj undo` and `jj redo` take no target and act on whichever operation landed last, which is usually somebody else's push or squash rather than yours. `jj op restore` rewinds the whole repo operation state and un-registers the workspaces other agents are working in. `jj new` without `--no-edit` moves the working copy of whichever workspace it runs in, and you run from the integration workspace, which is Daniel's. So does `jj edit`, which is why the conflict recipe below puts `@` back the moment the markers are gone.
 
 To back out your own work, correct it forward with another squash. When no forward correction can express the fix, `jj op revert <operation-id>` applies the inverse of one named operation as a new operation, leaving the rest of the log alone. Two conditions, both required: the id comes from `jj op log` and its description matches the command you ran, and the id is written out in full. Never run `jj op revert` without an id, because it defaults to `@`, the newest operation in the shared log, which is the same blind backout as `jj undo`.
 
@@ -111,6 +118,12 @@ Instead of adding new commits to the tip of the branch, the agent must follow th
 Adding a mixed BE/FE commit will be rejected.
 Adding a BE commit to the tip of the branch after a FE commit will be rejected.
 
+`--insert-before` is what places a commit in that order. `--insert-before @`
+puts it at the tip; when the order requires it below a commit that is already
+there, such as a backend commit under a frontend one, name that commit instead:
+`jj new --no-edit --insert-before <change-id> -m "..."`. Either way the
+descendants are rebased and no working copy moves.
+
 ## rewriting history
 
 It's preferred and encouraged to rewrite history, no matter how many commits ago it was.
@@ -133,10 +146,24 @@ Prove the target owns the file, once per file while planning and again before ea
   descendant is the target you want.
 - Both empty: the file is new to that lineage. Safe.
 
-If no target passes, make a new commit on top and say so in the report.
+If no target passes, make a new commit with `jj new --no-edit --insert-before @` and say so in the report.
 
 A hook runs this same check and denies the squash when the target does not own
 the file, so run it yourself rather than discovering it there.
+
+`/daniel-integrate` hands you the `handoff-owners.py` table, which has run this
+check over every file in the handoff and resolved a target for each one. It
+answers two questions the per-revision file list cannot: whether a file is the
+far side of a rename or copy, whose owner is the source path's owner and whose
+two paths go in one squash, and which commit wrote the lines the handoff edits,
+which is what separates the commit that owns a feature from whichever commit
+touched the same file last. It also lists the handoff's scaffolding paths and the
+blast radius of the targets it resolved.
+
+Take its resolved targets. Read diffs only for the files it marks AMBIGUOUS: it
+prints each candidate's own diff of those paths under the table, which is the
+evidence that decides them. Its draft commands are a starting point, not a plan,
+and the revset check before each squash still runs.
 
 ## stale workspaces
 
@@ -193,13 +220,32 @@ feature line are yours. A `handoff/*` bookmark that went conflicted because the
 squash rebased it is expected and stays conflicted: report it by name and keep
 executing the plan. The next integrator lands it against the new base.
 
-When a feature-line commit is conflicted:
+A feature-line conflict is yours to resolve, not Daniel's and not the next run's.
+It is a state to fix, not a failed squash: the commit that owns a file is the
+right target even when newer commits touch it too, and jj re-merging their diffs
+onto what you squashed in is what sometimes does not apply.
 
-1. Stop. Run no further squashes from the plan.
-2. The usual cause is the wrong-target squash above: content landed in a commit that never touched the file, and the descendants that do touch it conflict. Correct it forward by squashing that content into the commit it belonged in.
-3. Re-check `conflicts()`. Still not empty means stop and report. Do not guess twice.
+1. Stop squashing. `jj log -r 'conflicts()'`, and take the **earliest** conflicted commit: the later ones usually just inherited it.
+2. Write down where `@` is, then move onto the conflicted commit:
 
-Never resolve a conflict by editing a commit in place. A conflict that no forward squash can clear needs a scratch workspace, which is Daniel's call and not yours to make.
+   ```
+   jj log -r '@' --no-graph -T 'change_id.shortest() ++ "\n"'
+   jj edit '<conflicted-change-id>'
+   ```
+
+   The markers are now in this workspace's files, and editing them updates that
+   commit directly. No squash needed afterwards.
+3. Edit the markers out. Both sides usually belong: one is what this commit already did to the file, the other is what you squashed in. Dropping a side is how a change silently disappears from the branch.
+4. `jj edit '<the change-id from step 2>'` to put `@` back, before you do anything else. This is Daniel's working copy: left parked in branch history, his next edit lands in an old commit.
+5. `jj log -r 'conflicts()'` again and repeat until empty.
+
+If a resolution makes conflicts appear in *descendants*, the content you wrote
+left a later commit's own change with nothing to apply to. Usually that means it
+belongs further down the branch, at the commit whose version you just
+overwrote. Resolve those the same way, or move the content and say so.
+
+Report every resolution alongside the squashes. Daniel reviews the result, he
+does not adjudicate the merge.
 
 ## Batch size
 

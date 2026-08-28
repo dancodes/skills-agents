@@ -15,7 +15,7 @@ import subprocess
 import sys
 
 # Commands that rewrite commit content, so they can leave a conflict behind.
-REWRITES = re.compile(r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|restore|backout|revert)\b")
+REWRITES = re.compile(r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|restore|backout|revert|edit)\b")
 LISTED = 10
 TEMPLATE = ('change_id.shortest(8) ++ "\\t" ++ bookmarks.join(" ") ++ "\\t" '
             '++ description.first_line() ++ "\\n"')
@@ -95,6 +95,8 @@ def test():
     assert REWRITES.search("jj squash --into abc a.ts")
     assert REWRITES.search("jj op revert 197d348a40f5")
     assert REWRITES.search("cd /repo && jj rebase -r abc -d xyz")
+    # Returning from a conflict resolution is when it gets snapshotted and rebased.
+    assert REWRITES.search("jj edit abc")
     assert not REWRITES.search("jj log -r 'conflicts()'")
     assert not REWRITES.search("jj describe -r abc -m 'x'")
 

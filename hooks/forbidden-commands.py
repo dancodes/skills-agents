@@ -51,11 +51,14 @@ RULES = [
      "from the directory you would have typechecked in. It takes the same "
      "arguments, waits for its turn, and then runs yarn typecheck. Give the "
      "Bash call a timeout of 600000 so the wait cannot cut the run short."),
-    (r"\bjj\s+(?:new|edit)\b",
-     "jj new and jj edit are forbidden: they move the working copy of whichever "
-     "workspace they run in, and workspaces here belong to other agents. Work "
-     "is parked with skills/daniel/park-workspace.sh and integrated by "
-     "/daniel-integrate, neither of which needs to move a working copy."),
+    (r"\bjj\s+new\b(?![^;&|]*--no-edit\b)",
+     "jj new without --no-edit moves the working copy of whichever workspace it "
+     "runs in, and workspaces here belong to other agents. To make room for a "
+     "commit that has to be new, run\n\n"
+     "    jj new --no-edit --insert-before @ -m \"<message>\"\n\n"
+     "from the integration workspace: it creates the commit at the branch tip, "
+     "rebases @ on top of it, and moves no working copy. Then squash the "
+     "handoff's files into it."),
     (r"\bjj\s+(?:abandon|restore)\b",
      "jj abandon and jj restore are forbidden: both discard content that only "
      "exists in a working copy or a commit another agent is sitting on. Correct "
@@ -64,6 +67,16 @@ RULES = [
      "git stash is forbidden. This repository uses jj, and stashing moves files "
      "out from under every other agent working here."),
 ]
+
+
+EDIT = re.compile(r"\bjj\s+edit\b")
+EDIT_MESSAGE = (
+    "jj edit is forbidden in a /daniel workspace: it moves that workspace's "
+    "working copy, and the workspace belongs to another agent. Work is parked "
+    "with skills/daniel/park-workspace.sh and integrated by /daniel-integrate, "
+    "neither of which needs to move a working copy. The integration workspace "
+    "may run it, to sit on a conflicted commit and resolve it."
+)
 
 
 UPDATE_STALE = re.compile(r"\bjj\s+workspace\s+update-stale\b")
@@ -85,7 +98,7 @@ UPDATE_STALE_MESSAGE = (
 
 
 WORKSPACE_WRITE = re.compile(
-    r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|backout|commit"
+    r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|backout|commit|new"
     r"|bookmark\s+(?:move|set|delete|forget|track|untrack)"
     r"|workspace\s+forget|git\s+(?:push|fetch))\b"
 )
@@ -108,6 +121,8 @@ def in_daniel_workspace(command, cwd):
 def denial(command, cwd=""):
     if UPDATE_STALE.search(command) and in_daniel_workspace(command, cwd):
         return UPDATE_STALE_MESSAGE
+    if EDIT.search(command) and in_daniel_workspace(command, cwd):
+        return EDIT_MESSAGE
     for pattern, message in RULES:
         if re.search(pattern, command):
             return message
@@ -139,14 +154,20 @@ def test():
     assert denial("cd /x/daniel-workspaces/feat && jj workspace update-stale",
                   "/x/repo") == UPDATE_STALE_MESSAGE
     assert denial("jj workspace update-stale", "/x/repo") is None
+    # jj edit resolves conflicts from the integration workspace, and only there.
+    assert denial("jj edit xyz", "/x/daniel-workspaces/feat") == EDIT_MESSAGE
+    assert denial("jj edit xyz", "/x/repo") is None
     assert denial("jj new") == RULES[8][1]
-    assert denial("jj edit xyz") == RULES[8][1]
+    assert denial("jj new -m 'x' --insert-before @") == RULES[8][1]
+    assert denial("jj new --no-edit --insert-before @ -m 'feat: x'") is None
     assert denial("jj abandon xyz") == RULES[9][1]
     assert denial("jj restore src/a.ts") == RULES[9][1]
     assert denial("git stash") == RULES[10][1]
     assert denial("jj squash --into abc a.ts",
                   "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
     assert denial("jj bookmark delete handoff/feat",
+                  "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj new --no-edit --insert-before @ -m 'x'",
                   "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
     assert denial("jj git push", "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
     # Parking is the one write an impl workspace makes, and it stays allowed.

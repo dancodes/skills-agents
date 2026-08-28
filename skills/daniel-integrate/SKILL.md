@@ -41,25 +41,26 @@ is the integration workspace: never `cd` into a parked workspace.
    If it fails, another integration run holds it. Relay its output to Daniel and
    stop. Do not remove the lock directory yourself, and do not proceed without
    it.
-2. Print the picture of the run: the feature line's revisions with the files
-   each one owns, and the same per handoff bookmark.
+2. Print the picture of the run: the branch's revisions, and for every parked
+   handoff the squash target of each of its files.
    ```
-   "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel-integrate/branch-files.sh"
+   "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel-integrate/handoff-owners.py"
    jj workspace list
    ```
-   It excludes the branch root's own changeset. If `trunk()` is not this
-   branch's root, resolve the root from `jj log` and pass it as the one
-   argument. `Nothing parked` under Handoffs means there is nothing to do:
-   release the lock and say so.
+   With no bookmark named it resolves every parked `handoff/*`. If `trunk()` is
+   not this branch's root, resolve the root from `jj log` and pass it as
+   `--root <revset>`. `Nothing parked` means there is nothing to do: release the
+   lock and say so. Beyond the handoff names and their file counts, the output is
+   for the `jj` agent: do not read the per-file targets yourself or act on them.
 3. Relay the list to Daniel with the file count per handoff, and confirm which
    handoffs to land and in what order. Refactors first, then backend, then
    frontend, per the order the `jj` agent enforces. If Daniel named handoffs in
    the invocation, confirm that list rather than asking again.
 4. Spawn one `jj` agent for the whole run, handing it this workspace's directory,
-   the confirmed handoff bookmarks in order, and the `branch-files.sh` output so
-   it starts from the per-revision file ownership instead of rebuilding it. It
-   plans only. Relay its plan (per-file target, commit vs squash, messages,
-   blast radius) and wait for approval.
+   the confirmed handoff bookmarks in order, and that output, so it starts from
+   the resolved per-file targets instead of rebuilding them. It plans only. Relay
+   its plan (per-file target, commit vs squash, messages, blast radius) and wait
+   for approval.
 5. If Daniel rejects the plan: send the feedback to the same running `jj` agent
    via SendMessage. It replans without touching the repository.
 6. If Daniel approves: tell the same `jj` agent to execute. It works in batches
