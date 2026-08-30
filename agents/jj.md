@@ -266,6 +266,4 @@ Per landed handoff:
 
 - Confirm the shape of the jj branch is as expected, there are no dangling commits, and the commits are in the right order.
 - Confirm the handoff commit is empty, so nothing was left behind: `jj diff --summary -r 'handoff/<name>'` prints only scaffolding, or nothing.
-- `jj bookmark delete handoff/<name>`. This has to happen: after the squash the handoff commit is empty, and leaving the bookmark keeps that empty commit visible and makes the work look unlanded.
-- `jj workspace forget <name>`, by workspace name, not by path.
-- Removing the directory is Daniel's, since auto mode blocks it. Give him the command with a `!` prefix so he can run it in his chat window: `rm -rf ../daniel-workspaces/<name>`.
+- `jj bookmark delete handoff/<name>`. This has to happen: after the squash the handoff commit is empty, and leaving the bookmark keeps that empty commit visible and makes the work look unlanded. The workspace itself is already gone: park-workspace.sh forgot and deleted it when the work was parked.

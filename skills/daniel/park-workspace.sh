@@ -2,6 +2,8 @@
 
 # Park an impl workspace's finished work on a handoff/<name> bookmark, which
 # outlives the workspace going stale or being forgotten. /daniel-integrate reads it.
+# The bookmark carries the work, so the script then forgets the workspace and
+# deletes its directory.
 
 set -Eeuo pipefail
 
@@ -10,6 +12,7 @@ if [[ $# -ne 2 || ${1:-} == '-h' || ${1:-} == '--help' ]]; then
   exit 2
 fi
 
+source=$(jj workspace root 2>/dev/null || jj root)
 workspace=$(cd -- "$1" && pwd)
 name=$(basename -- "$workspace")
 bookmark=handoff/$name
@@ -48,4 +51,14 @@ if [[ -n $scaffolding ]]; then
   printf '\nScaffolding in the snapshot, must not reach a commit:\n%s\n' "$scaffolding"
 fi
 
-printf '\nThis workspace is parked. Run no further command in %s.\n' "$workspace"
+printf '\nThis workspace is parked. Run no further command in it.\n'
+
+# The bookmark holds the work now, so the workspace is disposable. Forget it
+# from the source workspace, never from inside the one being removed.
+cd -- "$source"
+if jj --ignore-working-copy workspace forget "$name"; then
+  rm -rf -- "$workspace"
+  printf '\nWorkspace forgotten and %s deleted.\n' "$workspace"
+else
+  printf '\nParked, but could not forget the workspace. Delete %s by hand.\n' "$workspace" >&2
+fi

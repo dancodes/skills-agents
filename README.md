@@ -17,8 +17,8 @@ Copies `skills/`, `agents/` and `hooks/` into `~/.claude` (or `$CLAUDE_HOME`).
 |---|---|---|
 | implement | `impl` in its workspace | edits + `jj status` to snapshot; never commits |
 | comment pass | `/no-comments` → `comment-sicko` | fresh agent deletes the comments `impl` wrote; `impl` vets and applies `MUST KILL` reshapes |
-| park | `/daniel` via `park-workspace.sh` | `jj describe` + `jj bookmark create handoff/<name>`, then stops |
-| integrate | `/daniel-integrate` → `jj` agent | acquires lock, squashes `handoff/*` into the feature line, deletes bookmark, forgets workspace, releases lock |
+| park | `/daniel` via `park-workspace.sh` | `jj describe` + `jj bookmark create handoff/<name>`, then forgets the workspace and deletes its directory |
+| integrate | `/daniel-integrate` → `jj` agent | acquires lock, squashes `handoff/*` into the feature line, deletes bookmark, releases lock |
 
 Agents typecheck through `skills/daniel/typecheck.py`, which runs
 `yarn typecheck --checkers 1`; a hook blocks `yarn typecheck`, `tsgo` and `tsc`

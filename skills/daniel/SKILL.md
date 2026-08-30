@@ -51,9 +51,10 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    message from the request, one line, no mention of Claude or a co-author.
    Relay the script's output verbatim: the bookmark, the change ID, the file
    list, and any scaffolding line it printed.
-6. Stop. Nothing else happens in this run. Do not spawn the `jj` agent, do not
-   squash, do not delete the workspace, and do not run any further command in
-   the workspace directory. Tell Daniel the work is parked under
+6. Stop. Nothing else happens in this run. Do not spawn the `jj` agent and do
+   not squash. The park script itself forgets the workspace and deletes its
+   directory: the `handoff/<workspace-name>` bookmark carries everything
+   `/daniel-integrate` needs. Tell Daniel the work is parked under
    `handoff/<workspace-name>` and that `/daniel-integrate` lands it when he is
    ready.
 

@@ -94,19 +94,18 @@ one starts. Never let two handoffs be mid-squash together.
 
 ## Cleanup, per landed handoff
 
-The `jj` agent runs the first two from this workspace; the last is Daniel's,
-because auto mode blocks it:
+The `jj` agent runs the bookmark delete from this workspace:
 
 ```
 jj bookmark delete handoff/<name>
-jj workspace forget <name>
-rm -rf ../daniel-workspaces/<name>
 ```
 
 The bookmark has to go: the squash empties its commit, jj abandons it, and the
 bookmark slides onto the parent, a real branch commit it has nothing to do with.
 Left there, a `handoff/*` name marks work that is already landed.
-Give Daniel the `rm -rf` with a `!` prefix so he can run it in his chat window.
+
+The workspace is already gone: park-workspace.sh forgot and deleted it when
+Daniel approved the impl report.
 
 ## A handoff that goes conflicted mid-run
 
