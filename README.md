@@ -20,9 +20,10 @@ Copies `skills/`, `agents/` and `hooks/` into `~/.claude` (or `$CLAUDE_HOME`).
 | park | `/daniel` via `park-workspace.sh` | `jj describe` + `jj bookmark create handoff/<name>`, then stops |
 | integrate | `/daniel-integrate` → `jj` agent | acquires lock, squashes `handoff/*` into the feature line, deletes bookmark, forgets workspace, releases lock |
 
-Agents typecheck through `skills/daniel/typecheck.py`, which waits for a free
-slot before running `yarn typecheck`; a hook blocks `yarn typecheck`, `tsgo` and
-`tsc` run directly. One run at a time by default, `TYPECHECK_SLOTS=2` for two.
+Agents typecheck through `skills/daniel/typecheck.py`, which runs
+`yarn typecheck --checkers 1`; a hook blocks `yarn typecheck`, `tsgo` and `tsc`
+run directly. `new-workspace.sh` seeds each workspace with the incremental
+cache, so a workspace's first typecheck is warm rather than cold.
 
 Implementation and integration are separate invocations. `/daniel` leaves the
 work parked and stops. `/daniel-integrate` is the only writer to the feature

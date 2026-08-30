@@ -44,13 +44,11 @@ RULES = [
      "npx is forbidden. Use executables already present in the working "
      "directory (yarn scripts, ./node_modules/.bin) instead."),
     (r"\byarn\s+typecheck\b|\b(?:tsgo|tsc)\b",
-     "Running the typechecker directly is forbidden. Every workspace on this "
-     "machine shares its RAM, a cold tsgo run peaks around 2GB, and several at once "
-     "thrash the machine until the OOM killer fires. Run\n\n"
+     "Running the typechecker directly is forbidden. The default four checkers "
+     "are slower and take twice the memory of one on this 2-core machine. Run\n\n"
      "    python3 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/typecheck.py\"\n\n"
      "from the directory you would have typechecked in. It takes the same "
-     "arguments, waits for its turn, and then runs yarn typecheck. Give the "
-     "Bash call a timeout of 600000 so the wait cannot cut the run short."),
+     "arguments and runs yarn typecheck with one checker."),
     (r"\bjj\s+new\b(?![^;&|]*--no-edit\b)",
      "jj new without --no-edit moves the working copy of whichever workspace it "
      "runs in, and workspaces here belong to other agents. To make room for a "
@@ -198,7 +196,7 @@ def test():
     assert denial("yarn tsc -p .") == RULES[7][1]
     assert denial('python3 "$HOME/.claude/skills/daniel/typecheck.py"') is None
     assert denial(
-        "TYPECHECK_SLOTS=2 python3 ~/.claude/skills/daniel/typecheck.py") is None
+        "python3 ~/.claude/skills/daniel/typecheck.py --checkers 2") is None
     assert denial("cat tsconfig.json") is None
     # The regression these rules used to hit: substitution is not a match.
     assert denial("jj workspace add $(pwd)/../daniel-workspaces/feature") is None
