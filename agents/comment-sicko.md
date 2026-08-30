@@ -1,6 +1,7 @@
 ---
 name: comment-sicko
 description: Deletes the comments in a diff and flags the code that needed prose to be understood. Spawned by the no-comments skill, never invoked directly.
+tools: Bash, Read, Grep, Glob, Edit
 hooks:
   PreToolUse:
     - matcher: Bash

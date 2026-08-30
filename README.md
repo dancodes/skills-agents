@@ -5,11 +5,33 @@ that several agents work in at once.
 
 ## Install
 
+Prerequisites:
+
+- Claude Code, for the Claude install (always).
+- The [pi coding agent](https://www.npmjs.com/package/@earendil-works/pi-coding-agent)
+  with `pi install npm:pi-subagents`, for the Pi install (optional). Without
+  the `pi` command on `PATH` the Pi install is skipped with a message.
+
 ```
 ./install.sh
 ```
 
 Copies `skills/`, `agents/` and `hooks/` into `~/.claude` (or `$CLAUDE_HOME`).
+When `pi` is installed, it also renders `skills/` and `agents/` for Pi via
+`scripts/render-pi-markdown.py` and installs them into `~/.pi/agent` (or
+`$PI_CODING_AGENT_DIR`):
+
+- Hooks are stripped; Pi never runs Claude hooks.
+- Claude tool names are mapped to Pi tool names (`Bash`→`bash`, `Read`→`read`,
+  `Grep`→`grep`, `Glob`→`find`, `Edit`→`edit`, `Write`→`write`,
+  `Agent`→`subagent`+`subagent_wait`); an unknown tool fails the install.
+- Agents get `systemPromptMode: replace` and `inheritProjectContext: true`.
+- Path expressions like `${CLAUDE_CONFIG_DIR:-$HOME/.claude}` in skill and
+  agent bodies are rewritten to `${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}`.
+
+The rendered agents and skills are the only capability source: Pi uses the
+same tool allowlists declared in the canonical agents, mapped to Pi's names.
+`hooks/` are Claude-only and are never installed for Pi.
 
 ## Flow
 

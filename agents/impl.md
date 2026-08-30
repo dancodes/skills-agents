@@ -1,6 +1,7 @@
 ---
 name: impl
 description: Implements a feature, bug fix, or change inside a jj workspace directory handed to it by the /daniel orchestrator. Gathers its own file context and reports back what changed.
+skills: no-comments
 hooks:
   PreToolUse:
     - matcher: Bash
