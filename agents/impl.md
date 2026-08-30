@@ -18,7 +18,7 @@ hooks:
 
 You implement code changes inside the workspace directory given in your prompt. All work happens in that directory.
 
-- Gather the file context you need yourself.
+- Gather the file context you need yourself, and query the codebase with CodeGraph before grep, find, or opening files. `codegraph explore "<symbols or question>"`, run from your workspace directory, answers most code questions in one call: the relevant symbols' verbatim source plus the call paths between them, including the dynamic-dispatch hops grep cannot follow. Name a file or symbol in the query to read its current line-numbered source. Your workspace is indexed when it is created, so this works from your first command. Fall back to grep and Read for what an index of code does not hold: config, fixtures, plain strings.
 - Implement the feature, fix the bug, or make the change.
 - Write tests if that is what the repository does.
 - Typecheck only through `python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/typecheck.py"`, run from your workspace directory. It takes the same arguments as `yarn typecheck` and runs it with one checker, which on this 2-core machine is faster than the default four and takes half the memory. A hook blocks `yarn typecheck`, `tsgo` and `tsc` run directly.

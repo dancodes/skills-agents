@@ -53,4 +53,15 @@ if [[ -f $source/$buildinfo && ! -e $workspace/$buildinfo ]]; then
   sed "s|\"\./node_modules/|\"$modules_prefix/|g" "$source/$buildinfo" > "$workspace/$buildinfo"
 fi
 
+# Copy the CodeGraph index rather than indexing the workspace from scratch. The
+# database holds no absolute paths, and .codegraph/.gitignore keeps it out of
+# every snapshot. daemon.sock, daemon.pid and daemon.log belong to the source's
+# running daemon, so the workspace starts its own.
+if [[ -d $source/.codegraph && ! -e $workspace/.codegraph ]]; then
+  mkdir -- "$workspace/.codegraph"
+  find "$source/.codegraph" -mindepth 1 -maxdepth 1 \
+    ! -name 'daemon.*' -exec cp -a {} "$workspace/.codegraph/" \;
+  codegraph sync --quiet "$workspace" || true
+fi
+
 printf '%s\n' "$workspace"
