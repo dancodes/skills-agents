@@ -1,7 +1,6 @@
 ---
 name: jj
 description: Lands the work /daniel runs parked on handoff bookmarks into the feature line with jj squash, then cleans up each handoff. Spawned only by /daniel-integrate.
-model: sonnet
 tools: Bash, Read, Grep, Glob, Edit
 hooks:
   PreToolUse:

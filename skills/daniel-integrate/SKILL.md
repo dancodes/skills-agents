@@ -65,7 +65,9 @@ is the integration workspace: never `cd` into a parked workspace.
    the confirmed handoff bookmarks in order, and that output, so it starts from
    the resolved per-file targets instead of rebuilding them. It plans only. Relay
    its plan (per-file target, commit vs squash, messages, blast radius) and wait
-   for approval.
+   for approval. Spawn it with the sonnet model when the `handoff-owners.py`
+   output is trivial, meaning no AMBIGUOUS, RESURRECTED or NEW COMMIT file
+   anywhere in it; anything else inherits your own model.
 5. If Daniel rejects the plan: send the feedback to the same running `jj` agent
    via SendMessage. It replans without touching the repository.
 6. If Daniel approves: tell the same `jj` agent to execute. It works in batches

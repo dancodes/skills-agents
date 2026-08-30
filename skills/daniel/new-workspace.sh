@@ -10,7 +10,10 @@ if [[ $# -ne 1 || ${1:-} == '-h' || ${1:-} == '--help' ]]; then
   exit 2
 fi
 
-source=$(pwd)
+# Derive the repo root from jj instead of pwd, so running the script from a
+# subdirectory (e.g. frontend/) still links the right node_modules and resolves
+# the generated client and buildinfo against the repo root.
+source=$(jj workspace root 2>/dev/null || jj root)
 workspace=$source/../daniel-workspaces/$1
 
 # jj snapshots the whole working copy, so the links below would land in the
