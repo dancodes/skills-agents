@@ -96,8 +96,9 @@ jj workspace forget <name>
 rm -rf ../daniel-workspaces/<name>
 ```
 
-The bookmark has to go: after the squash its commit is empty, and leaving the
-bookmark keeps that empty commit visible and makes the handoff look unlanded.
+The bookmark has to go: the squash empties its commit, jj abandons it, and the
+bookmark slides onto the parent, a real branch commit it has nothing to do with.
+Left there, a `handoff/*` name marks work that is already landed.
 Give Daniel the `rm -rf` with a `!` prefix so he can run it in his chat window.
 
 ## A handoff that goes conflicted mid-run

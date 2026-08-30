@@ -8,8 +8,8 @@
 set -Eeuo pipefail
 
 action=${1:-}
-if [[ $action != acquire && $action != release && $action != status ]]; then
-  printf 'Usage: integrate-lock.sh acquire|release|status\n' >&2
+if [[ $action != acquire && $action != release ]]; then
+  printf 'Usage: integrate-lock.sh acquire|release\n' >&2
   exit 2
 fi
 
@@ -42,13 +42,5 @@ case $action in
   release)
     rm -rf -- "$lock"
     printf 'Lock released.\n'
-    ;;
-  status)
-    if [[ -d $lock ]]; then
-      printf 'held: '
-      cat -- "$lock/holder" 2>/dev/null || printf '(none recorded)\n'
-    else
-      printf 'free\n'
-    fi
     ;;
 esac

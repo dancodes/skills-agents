@@ -49,8 +49,8 @@ fi
 # buildinfo, resolved through symlinks, so the ./node_modules prefix is rebased.
 buildinfo=frontend/tsconfig.tsbuildinfo
 if [[ -f $source/$buildinfo && ! -e $workspace/$buildinfo ]]; then
-  modules=$(realpath --relative-to="$workspace/frontend" "$source/frontend/node_modules")
-  sed "s|\"\./node_modules/|\"$modules/|g" "$source/$buildinfo" > "$workspace/$buildinfo"
+  modules_prefix=$(realpath --relative-to="$workspace/frontend" "$source/frontend/node_modules")
+  sed "s|\"\./node_modules/|\"$modules_prefix/|g" "$source/$buildinfo" > "$workspace/$buildinfo"
 fi
 
 printf '%s\n' "$workspace"

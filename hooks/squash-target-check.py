@@ -140,10 +140,10 @@ def message(target, target_id, misplaced):
         for cid, description in found:
             lines.append(f"    owned by {cid}  {description or '(no description)'}")
     lines.append(
-        f"\nSquashing a file into a commit that never touched it makes jj carry the\n"
-        f"content forward through the descendants that do, which conflicts and\n"
-        f"cascades to every descendant, including other workspaces' working copies.\n"
-        f"Squash each file into the commit listed above it, one target per command."
+        "\nSquashing a file into a commit that never touched it makes jj carry the\n"
+        "content forward through the descendants that do, which conflicts and\n"
+        "cascades to every descendant, including other workspaces' working copies.\n"
+        "Squash each file into the commit listed above it, one target per command."
     )
     return "\n".join(lines)
 

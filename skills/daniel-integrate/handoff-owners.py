@@ -244,7 +244,7 @@ def report(rev, root, commits):
         print(f"{len(unresolved)} file(s) AMBIGUOUS above: decide from the diffs, then squash.\n")
     if new_commit:
         print(f"{len(new_commit)} file(s) have no owner on this branch; they need a new"
-              f" commit unless they belong with an AMBIGUOUS file above:")
+              " commit unless they belong with an AMBIGUOUS file above:")
         for path in new_commit:
             print(f"  {path}")
         print()
