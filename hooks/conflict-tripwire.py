@@ -41,7 +41,8 @@ def rows(revset, cwd, run):
 
 def parked(bookmarks):
     names = [b.rstrip("*?") for b in bookmarks.split()]
-    return bool(names) and all(n.startswith("handoff/") for n in names)
+    return bool(names) and all(
+        n.startswith(("handoff/", "blocked-handoff/")) for n in names)
 
 
 def warning(command, cwd, run=jj):
@@ -118,6 +119,12 @@ def test():
     only_parked = "mxxluvkm\thandoff/backend\tsection previews\n"
     text = warning("jj squash --into abc a.ts", None,
                    lambda a, c: "" if "working_copies" in a[1] else only_parked)
+    assert "Not yours to fix" in text, text
+    assert "Stop. Run no further squashes" not in text
+
+    blocked = "nwqxqnnp\tblocked-handoff/revision-history-consistency\t\n"
+    text = warning("jj squash --into abc a.ts", None,
+                   lambda a, c: "" if "working_copies" in a[1] else blocked)
     assert "Not yours to fix" in text, text
     assert "Stop. Run no further squashes" not in text
 
