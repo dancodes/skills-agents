@@ -52,6 +52,11 @@ is the integration workspace: never `cd` into a parked workspace.
    `--root <revset>`. `Nothing parked` means there is nothing to do: release the
    lock and say so. Beyond the handoff names and their file counts, the output is
    for the `jj` agent: do not read the per-file targets yourself or act on them.
+
+   Outside an integration run the same script resolves a plain working copy full
+   of loose files, no parked bookmark needed: `handoff-owners.py @` names the
+   owner of every file in `@` so each one squashes into the commit whose feature
+   it belongs to, and only what is left needs a new commit.
 3. Relay the list to Daniel with the file count per handoff, and confirm which
    handoffs to land and in what order. Refactors first, then backend, then
    frontend, per the order the `jj` agent enforces. If Daniel named handoffs in

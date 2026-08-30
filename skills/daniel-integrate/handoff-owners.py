@@ -48,10 +48,14 @@ LEGEND = """How to read this
                     commit whose feature these lines belong to. Each candidate's
                     own diff of the path is printed below the table: decide from
                     those, then squash by hand.
+  -> RESURRECTED    a branch commit deleted this path and the handoff adds it
+                    back. No recommendation: reviving a file the branch removed
+                    is a decision, not a placement.
   -> NEW COMMIT     no branch commit touches this path and it is not a split.
 
-  Draft commands are a starting point, not a plan. They exclude every AMBIGUOUS
-  and NEW COMMIT file. SCAFFOLDING lists workspace symlinks and generated files
+  Draft commands are a starting point, not a plan, and run deepest first: the
+  target nearest the branch root comes before the targets above it. They exclude
+  every AMBIGUOUS, RESURRECTED and NEW COMMIT file. SCAFFOLDING lists workspace symlinks and generated files
   the park snapshotted, which never belong in a commit. Blast radius lists the
   bookmarks needing a re-push and the workspaces going stale once the targets are
   rewritten."""
@@ -78,11 +82,11 @@ def branch_commits(root, handoffs):
     touches every path in play, so leaving it in makes every file look owned."""
     template = (
         '"C\\t" ++ change_id.shortest(8) ++ "\\t" ++ description.first_line() ++ "\\n"'
-        ' ++ diff.files().map(|f| "F\\t" ++ f.source().path() ++ "\\t"'
-        ' ++ f.target().path() ++ "\\n").join("")'
+        ' ++ diff.files().map(|f| "F\\t" ++ f.status_char() ++ "\\t" ++ f.source().path()'
+        ' ++ "\\t" ++ f.target().path() ++ "\\n").join("")'
     )
     parked = " | ".join(f"({h})" for h in handoffs)
-    commits = []
+    commits, deleted = [], {}
     revset = f"({root}..@) ~ ({parked})" if parked else f"{root}..@"
     for line in jj(["log", "-r", revset, "--no-graph", "-T", template]).splitlines():
         kind, _, rest = line.partition("\t")
@@ -90,9 +94,11 @@ def branch_commits(root, handoffs):
             cid, _, description = rest.partition("\t")
             commits.append((cid, description, set()))
         elif kind == "F" and commits:
-            source, _, target = rest.partition("\t")
+            status, source, target = rest.split("\t")
             commits[-1][2].update({source, target})
-    return commits
+            if status == "D":
+                deleted.setdefault(target, commits[-1][0])
+    return commits, deleted
 
 
 def handoff_files(rev):
@@ -162,9 +168,28 @@ def resolve(cid_counter, candidates):
     return top
 
 
-def report(rev, root, commits):
+def resurrected(status, target, deleted):
+    """A path a branch commit deleted, that this handoff adds back."""
+    return deleted.get(target) if status == "A" else None
+
+
+def split_owner(rev, target, cut, by_cid):
+    """The owner of a file whose content was cut out of a file this handoff edits."""
+    content = {l.strip() for l in jj(["file", "show", "-r", rev, target]).splitlines()
+               if significant(l)}
+    for origin, lines in cut.items():
+        shared = content & lines
+        if len(shared) >= 3 and len(shared) >= len(content) / 2:
+            owner = resolve(line_owners(rev, origin)[0], set(by_cid))
+            if owner:
+                return owner, f"split out of {origin}, whose removed lines are {owner}'s"
+    return None, ""
+
+
+def report(rev, root, commits, deleted):
     by_cid = {cid: description for cid, description, _ in commits}
     touches = {cid: paths for cid, _, paths in commits}
+    depth = {cid: n for n, (cid, _, _) in enumerate(commits)}
     rows = handoff_files(rev)
 
     # An added file holding these lines is a split, not new work.
@@ -184,15 +209,13 @@ def report(rev, root, commits):
             print(f"     touched by {cid}  {by_cid[cid]}")
 
         owner, why = None, ""
-        if not candidates:
-            content = {l.strip() for l in jj(["file", "show", "-r", rev, target]).splitlines()
-                       if significant(l)}
-            for origin, lines in cut.items():
-                shared = content & lines
-                if len(shared) >= 3 and len(shared) >= len(content) / 2:
-                    origin_owner = resolve(line_owners(rev, origin)[0], set(by_cid))
-                    if origin_owner:
-                        owner, why = origin_owner, f"split out of {origin}, whose removed lines are {origin_owner}'s"
+        grave = resurrected(status, target, deleted)
+        if not candidates or grave:
+            owner, why = split_owner(rev, target, cut, by_cid)
+            if not owner and grave:
+                print(f"     -> RESURRECTED   ({grave} deleted this path; re-adding it"
+                      " is yours to place)\n")
+                continue
             if not owner:
                 print("     -> NEW COMMIT   (new to the branch, and not cut out of a"
                       " file this handoff edits)\n")
@@ -237,7 +260,8 @@ def report(rev, root, commits):
             print(f"  {path}")
 
     print("Draft commands, verify each target before running:\n")
-    for cid, paths in groups.items():
+    for cid in sorted(groups, key=lambda c: -depth[c]):
+        paths = groups[cid]
         joined = " \\\n    ".join(sorted(set(paths)))
         print(f"jj squash --from {rev} --into {cid} -u -- \\\n    {joined}\n")
     if unresolved:
@@ -271,7 +295,7 @@ def main(argv):
         if not argv:
             print("Nothing parked: no handoff/* bookmark exists.")
             return 0
-    commits = branch_commits(root, argv)
+    commits, deleted = branch_commits(root, argv)
     if not commits:
         sys.exit(f"No commits in {root}..@; pass the branch root with --root.")
     print(f"{LEGEND}\n")
@@ -279,7 +303,7 @@ def main(argv):
     for cid, description, paths in commits:
         print(f"  {cid}  {description}   ({len(paths)} paths)")
     for rev in argv:
-        report(rev, root, commits)
+        report(rev, root, commits, deleted)
     return 0
 
 
@@ -306,6 +330,11 @@ def test():
     assert resolve(Counter({"ccc": 9}), {"aaa"}) is None
     assert resolve(Counter({"ccc": 9, "aaa": 1}), {"aaa"}) == "aaa"
     assert significant('  reconciliation: "R",') and not significant("});")
+
+    graves = {"src/old.ts": "wnmwlkzk"}
+    assert resurrected("A", "src/old.ts", graves) == "wnmwlkzk"
+    assert resurrected("M", "src/old.ts", graves) is None
+    assert resurrected("A", "src/new.ts", graves) is None
     print("ok")
 
 
