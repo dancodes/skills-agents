@@ -45,4 +45,12 @@ if [[ -e $generated && ! -e $workspace/$generated ]]; then
   ln -s "$source/$generated" "$workspace/$generated"
 fi
 
+# Seed the incremental typecheck cache. TypeScript records paths relative to the
+# buildinfo, resolved through symlinks, so the ./node_modules prefix is rebased.
+buildinfo=frontend/tsconfig.tsbuildinfo
+if [[ -f $source/$buildinfo && ! -e $workspace/$buildinfo ]]; then
+  modules=$(realpath --relative-to="$workspace/frontend" "$source/frontend/node_modules")
+  sed "s|\"\./node_modules/|\"$modules/|g" "$source/$buildinfo" > "$workspace/$buildinfo"
+fi
+
 printf '%s\n' "$workspace"
