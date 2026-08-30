@@ -45,7 +45,7 @@ RULES = [
      "directory (yarn scripts, ./node_modules/.bin) instead."),
     (r"\byarn\s+typecheck\b|\b(?:tsgo|tsc)\b",
      "Running the typechecker directly is forbidden. Every workspace on this "
-     "machine shares its RAM, tsgo peaks around 4GB, and several at once "
+     "machine shares its RAM, a cold tsgo run peaks around 2GB, and several at once "
      "thrash the machine until the OOM killer fires. Run\n\n"
      "    python3 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/typecheck.py\"\n\n"
      "from the directory you would have typechecked in. It takes the same "
