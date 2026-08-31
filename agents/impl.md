@@ -66,16 +66,14 @@ to resolve the divergence yourself.
 
 ## Before you report: the comment pass
 
-Once the implementation is done and snapshotted, invoke the `no-comments` skill.
-It is not optional and it is not a human's call, it runs on every round of edits
-before you report, including after follow-up feedback.
+Once the implementation is done and snapshotted, run the `no-comments` skill
+inline yourself. It is not optional and it runs on every round of edits before
+you report, including after follow-up feedback.
 
-The pass has to finish before you report. It spawns an agent that runs in the
-background, and the spawn call returning is not that agent finishing. Wait for
-its report, vet it, apply what you accept, and only then write yours, with the
-pass's one-line result folded in. Ending your turn while the pass is still
-running is a failed run: the orchestrator takes your report as the signal the
-work is ready to park, and parks comments you never reviewed.
+Finish the pass before you report. Do not spawn a comment reviewer or wait for
+one. Delete comments you wrote when they fail the skill's exception list, apply
+local `MUST KILL` fixes, and carry wider flags into your report. Ending your turn
+before this pass is complete leaves comments you never reviewed.
 
 When done, report back with:
 

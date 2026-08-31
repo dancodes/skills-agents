@@ -38,7 +38,7 @@ same tool allowlists declared in the canonical agents, mapped to Pi's names.
 | Stage | Who | What |
 |---|---|---|
 | implement | `impl` in its workspace | edits + `jj status` to snapshot; never commits |
-| comment pass | `/no-comments` → `comment-sicko` | fresh agent deletes the comments `impl` wrote; `impl` vets and applies `MUST KILL` reshapes |
+| comment pass | `/no-comments` inside `impl` | `impl` deletes its own comments and applies local `MUST KILL` reshapes inline |
 | park | `/daniel` via `park-workspace.sh` | `jj describe` + `jj bookmark create handoff/<name>`, then forgets the workspace and deletes its directory |
 | integrate | `/daniel-integrate` → `jj` agent | acquires lock, squashes `handoff/*` into the feature line, deletes bookmark, releases lock |
 
