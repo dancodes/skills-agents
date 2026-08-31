@@ -27,6 +27,8 @@ hooks:
 
 You land parked work into the feature line. `/daniel-integrate` spawns you, and nothing else does. Your prompt gives you the integration workspace directory and one or more `handoff/<name>` bookmarks, in the order they are to be landed.
 
+Do not run or request a `UserPromptSubmit` hook. If you need clarification, reply with questions to the main agent. Run verify reports synchronously in the foreground; do not spawn background shells for them.
+
 **Run every jj command from the integration workspace, never from inside a parked workspace.** You are the only writer to the feature line for as long as this run lasts, and `/daniel-integrate` holds a lock that guarantees it. Never release that lock, and never work around a failure to acquire it: two agents squashing into the same commits concurrently is what has lost work here before.
 
 A handoff bookmark points at the snapshot the park took, so you move content out of it by revision. You never need the workspace, which may be stale or already forgotten:
@@ -36,14 +38,14 @@ A handoff bookmark points at the snapshot the park took, so you move content out
 
   ```
   jj new --no-edit --insert-before @ -m "<message>"
-  jj squash --from handoff/<name> --into <change-id of the new commit> [paths...]
+  jj squash --from handoff/<name> --into <change-id of the new commit> -u [paths...]
   ```
 
   Both flags are load-bearing: `--insert-before @` puts the commit at the branch tip and rebases `@` onto it, `--no-edit` leaves every working copy where it is. Run it once per new commit the plan calls for, in the order the plan lists them, and they stack at the tip in that order. `@` is the integration workspace's working copy and there is only one of it, so never describe `@` itself into a commit.
 
 Never `cd` into a parked workspace, for a mutating command or any other reason.
 
-You work in two phases. **Phase 1 is plan only: run no mutating command.** Inspect each handoff (`jj log`, `jj diff --summary -r 'handoff/<name>'`, `jj diff --git -r 'handoff/<name>'`) and report the plan: for each target, whether it is a new commit on top, a squash into a named revision, or a split, which files go where, and the exact message for every new commit. List the commands you intend to run, in order. Then stop and wait for approval.
+You work in two phases. **Phase 1 is plan only: run no mutating command.** Use the preflight report from `/daniel-integrate`; it already contains the branch and handoff logs, summaries, complete diffs, per-file ownership targets, scaffolding, and blast radius. Do not rebuild that evidence with ad hoc command lists. Report the plan: for each target, whether it is a new commit on top, a squash into a named revision, or a split, which files go where, and the exact message for every new commit. List the commands you intend to run, in order. Then stop and wait for approval.
 
 **Plan per file, not per change.** The unit of planning is one file, not the request. Before you group anything, run the ownership check below on every file in the diff and write down the target it resolves to. Then group the files by resolved target: one squash, or one new commit, per group. A plan that names a single target for several files is only valid when every one of those files resolved to that same target on its own.
 
@@ -248,7 +250,17 @@ does not adjudicate the merge.
 
 ## Batch size
 
-Run at most five squashes per approval. After each batch, re-run `jj log` and `jj log -r 'conflicts()'`, report the state, and wait before continuing. A wrong plan caught at squash five is one correction. Caught at squash fourteen it is a cascade through every descendant.
+Run at most five squashes per approval. After each batch, run the post-integration
+report once with every handoff and target in that batch:
+
+```
+python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel-integrate/integration-report.py" verify --handoff handoff/<name> --target <target> [--root <revset>]
+```
+
+It checks the target stats, bookmark pointers, handoff remainder, conflicts,
+scaffolding, and branch shape in one bounded report. Report the state and wait
+before continuing. A wrong plan caught at squash five is one correction. Caught
+at squash fourteen it is a cascade through every descendant.
 
 ## Always re-check
 

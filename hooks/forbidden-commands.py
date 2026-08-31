@@ -67,6 +67,17 @@ RULES = [
 ]
 
 
+SQUASH_WITHOUT_MESSAGE = re.compile(
+    r"\bjj\s+squash\b(?![^;&|]*(?:--use-destination-message\b|"
+    r"(?:^|\s)-u(?=\s|$)|(?:^|\s)-m(?=\s|$)|--message(?:=|\s)))"
+)
+SQUASH_MESSAGE = (
+    "jj squash must pass -u (--use-destination-message) so it does not open "
+    "an editor or replace the destination description. If the destination has "
+    "no description, pass -m with the requested message instead."
+)
+
+
 EDIT = re.compile(r"\bjj\s+edit\b")
 EDIT_MESSAGE = (
     "jj edit is forbidden in a /daniel workspace: it moves that workspace's "
@@ -121,6 +132,10 @@ def denial(command, cwd=""):
         return UPDATE_STALE_MESSAGE
     if EDIT.search(command) and in_daniel_workspace(command, cwd):
         return EDIT_MESSAGE
+    if SQUASH_WITHOUT_MESSAGE.search(command):
+        if in_daniel_workspace(command, cwd) and WORKSPACE_WRITE.search(command):
+            return WORKSPACE_WRITE_MESSAGE
+        return SQUASH_MESSAGE
     for pattern, message in RULES:
         if re.search(pattern, command):
             return message
@@ -187,6 +202,10 @@ def test():
     assert denial("jj diff --summary -r 'ws@'") is None
     assert denial("jj diff --name-only") is None
     assert denial("jj diff -s") is None
+    assert denial("jj squash --into abc a.ts") == SQUASH_MESSAGE
+    assert denial("jj squash --into abc -u a.ts") is None
+    assert denial("jj squash --into abc --use-destination-message a.ts") is None
+    assert denial("jj squash --into abc -m 'message' a.ts") is None
     assert denial("yarn vitest run foo") == RULES[5][1]
     assert denial("npx eslint .") == RULES[6][1]
     assert denial("yarn typecheck") == RULES[7][1]

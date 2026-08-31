@@ -160,7 +160,7 @@ def case(cid, path, owner, by_cid):
         print(f"     ... {len(diff) - DIFF_LINES} more lines,"
               f" see jj diff --git -r {cid} {path}")
     print(f"\n     leave\n"
-          f"     squash   jj squash --from {cid} --into {owner} -- {path}\n"
+          f"     squash   jj squash --from {cid} --into {owner} -u -- {path}\n"
           f"     absorb   jj absorb --from {cid} --into {owner} -- {path}\n")
 
 

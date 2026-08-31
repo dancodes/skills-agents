@@ -41,33 +41,34 @@ is the integration workspace: never `cd` into a parked workspace.
    If it fails, another integration run holds it. Relay its output to Daniel and
    stop. Do not remove the lock directory yourself, and do not proceed without
    it.
-2. Print the picture of the run: the branch's revisions, and for every parked
-   handoff the squash target of each of its files.
+2. Print the picture of the run in one preflight report: branch revisions, each
+   handoff's files and diff, per-file squash targets, scaffolding, blast radius,
+   and workspaces.
    ```
-   "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel-integrate/handoff-owners.py"
-   jj workspace list
+   python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel-integrate/integration-report.py" plan [handoff ...] [--root <revset>]
    ```
    With no bookmark named it resolves every parked `handoff/*`. If `trunk()` is
    not this branch's root, resolve the root from `jj log` and pass it as
    `--root <revset>`. `Nothing parked` means there is nothing to do: release the
-   lock and say so. Beyond the handoff names and their file counts, the output is
-   for the `jj` agent: do not read the per-file targets yourself or act on them.
+   lock and say so. The report includes the `handoff-owners.py` table. Beyond the
+   handoff names and their file counts, its output is for the `jj` agent: do not
+   read the per-file targets yourself or act on them.
 
-   Outside an integration run the same script resolves a plain working copy full
-   of loose files, no parked bookmark needed: `handoff-owners.py @` names the
-   owner of every file in `@` so each one squashes into the commit whose feature
-   it belongs to, and only what is left needs a new commit.
+   Outside an integration run the ownership table still works on a plain working
+   copy full of loose files: `handoff-owners.py @` names the owner of every file
+   in `@` so each one squashes into the commit whose feature it belongs to, and
+   only what is left needs a new commit.
 3. Relay the list to Daniel with the file count per handoff, and confirm which
    handoffs to land and in what order. Refactors first, then backend, then
    frontend, per the order the `jj` agent enforces. If Daniel named handoffs in
    the invocation, confirm that list rather than asking again.
 4. Spawn one `jj` agent for the whole run, handing it this workspace's directory,
-   the confirmed handoff bookmarks in order, and that output, so it starts from
-   the resolved per-file targets instead of rebuilding them. It plans only. Relay
-   its plan (per-file target, commit vs squash, messages, blast radius) and wait
-   for approval. Spawn it with the sonnet model when the `handoff-owners.py`
-   output is trivial, meaning no AMBIGUOUS, RESURRECTED or NEW COMMIT file
-   anywhere in it; anything else inherits your own model.
+   the confirmed handoff bookmarks in order, and the preflight report, so it
+   starts from the resolved per-file targets instead of rebuilding them. It
+   plans only. Relay its plan (per-file target, commit vs squash, messages, blast
+   radius) and wait for approval. Spawn it with the sonnet model when the report
+   is trivial, meaning no AMBIGUOUS, RESURRECTED or NEW COMMIT file anywhere in
+   it; anything else inherits your own model.
 5. If Daniel rejects the plan: send the feedback to the same running `jj` agent
    via SendMessage. It replans without touching the repository.
 6. If Daniel approves: tell the same `jj` agent to execute. It works in batches
