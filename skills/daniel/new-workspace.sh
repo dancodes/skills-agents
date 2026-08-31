@@ -32,18 +32,20 @@ workspace=$(cd -- "$workspace" && pwd)
 # every workspace gets its own .vite: a shared dep cache is re-bundled by
 # whichever workspace runs vitest next, which breaks runs in the others
 # mid-flight.
-for modules in node_modules */node_modules; do
-  [[ -d $modules && ! -e $workspace/$modules ]] || continue
-  ignore "$workspace/$modules" '*'
-  find "$source/$modules" -mindepth 1 -maxdepth 1 \
+for modules in "$source"/node_modules "$source"/*/node_modules; do
+  [[ -d $modules ]] || continue
+  relative=${modules#"$source"/}
+  [[ -e $workspace/$relative ]] && continue
+  ignore "$workspace/$relative" '*'
+  find "$modules" -mindepth 1 -maxdepth 1 \
     ! -name '.vite*' ! -name '.cache' \
-    -exec ln -s {} "$workspace/$modules/" \;
+    -exec ln -s {} "$workspace/$relative/" \;
 done
 
 # Without the generated API client, typecheck in the workspace fails with
 # `Cannot find module 'src/modules/api/generated'`.
 generated=frontend/src/modules/api/generated
-if [[ -e $generated && ! -e $workspace/$generated ]]; then
+if [[ -e $source/$generated && ! -e $workspace/$generated ]]; then
   ignore "$(dirname -- "$workspace/$generated")" "$(basename -- "$generated")"
   ln -s "$source/$generated" "$workspace/$generated"
 fi
