@@ -39,7 +39,7 @@ RULES = [
      "of files."),
     (r"\byarn\s+vitest\b",
      "yarn vitest is forbidden. Run the repository scripts instead: yarn test, "
-     "or yarn test:integration for integration tests."),
+     "or VITEST_MAX_WORKERS=1 yarn test:integration for integration tests."),
     (r"\bnpx\b",
      "npx is forbidden. Use executables already present in the working "
      "directory (yarn scripts, ./node_modules/.bin) instead."),
@@ -106,6 +106,18 @@ UPDATE_STALE_MESSAGE = (
 )
 
 
+INTEGRATION_SUITE = re.compile(r"\byarn\s+test:integration\b")
+INTEGRATION_SUITE_MESSAGE = (
+    "yarn test:integration must run as\n\n"
+    "    VITEST_MAX_WORKERS=1 yarn test:integration <paths you touched>\n\n"
+    "from a /daniel workspace. The repository config sets maxWorkers: 2, which "
+    "is right for one suite on this 2-core machine but takes it to ~130% CPU; "
+    "several workspaces running that at once starve each other and the runs "
+    "time out. Scope it to the paths you touched as well: the whole suite is "
+    "over an hour."
+)
+
+
 WORKSPACE_WRITE = re.compile(
     r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|backout|commit|new"
     r"|bookmark\s+(?:move|set|delete|forget|track|untrack)"
@@ -132,6 +144,12 @@ def denial(command, cwd=""):
         return UPDATE_STALE_MESSAGE
     if EDIT.search(command) and in_daniel_workspace(command, cwd):
         return EDIT_MESSAGE
+    if (
+        INTEGRATION_SUITE.search(command)
+        and "VITEST_MAX_WORKERS" not in command
+        and in_daniel_workspace(command, cwd)
+    ):
+        return INTEGRATION_SUITE_MESSAGE
     if SQUASH_WITHOUT_MESSAGE.search(command):
         if in_daniel_workspace(command, cwd) and WORKSPACE_WRITE.search(command):
             return WORKSPACE_WRITE_MESSAGE
@@ -207,6 +225,15 @@ def test():
     assert denial("jj squash --into abc --use-destination-message a.ts") is None
     assert denial("jj squash --into abc -m 'message' a.ts") is None
     assert denial("yarn vitest run foo") == RULES[5][1]
+    assert denial("yarn test:integration",
+                  "/x/daniel-workspaces/feat") == INTEGRATION_SUITE_MESSAGE
+    assert denial("yarn test:integration --run src/a.test.tsx",
+                  "/x/daniel-workspaces/feat") == INTEGRATION_SUITE_MESSAGE
+    assert denial("VITEST_MAX_WORKERS=1 yarn test:integration --run src/a.test.tsx",
+                  "/x/daniel-workspaces/feat") is None
+    assert denial("yarn test:integration", "/x/repo") is None
+    assert denial("yarn test --run src/a.test.ts",
+                  "/x/daniel-workspaces/feat") is None
     assert denial("npx eslint .") == RULES[6][1]
     assert denial("yarn typecheck") == RULES[7][1]
     assert denial("yarn typecheck --watch") == RULES[7][1]
