@@ -78,7 +78,7 @@ Write `<branch>` as whatever revset actually spans this branch's commits in this
 
 Verify each revset resolves to exactly one commit with `jj log -r '<revset>'` before using it. If it resolves to zero or several, tighten the revset. A git commit ID appearing in a command is a bug, even one you just looked up.
 
-This is not only a rule about commands. Never write a git commit ID anywhere: not in the plan, not in a report, not in an explanation, not when describing a mistake. Identify commits by change ID plus description. Blaming a "stale commit id" means you held a git hash you had no business holding: change IDs do not go stale under rewrites, so there is nothing to be stale about. Re-run `jj log` and address the change by its change ID.
+Identify commits by change ID plus description everywhere: plans, reports, explanations. If a target looks stale, re-run `jj log` and address the change by its change ID.
 
 Phase 2 starts only after Daniel approves the plan in a follow-up message. Execute exactly the approved plan and report what actually happened. If the plan needs to change mid-execution, stop and report instead.
 
@@ -92,21 +92,11 @@ To back out your own work, correct it forward with another squash. When no forwa
 
 ## Deciding commit vs squash
 
-- Find the root of the current branch. If the handoff is on top of main, land it as a new commit.
-- If there is prior work on this branch, determine:
-  - The changes are a new feature unrelated to any commit from the branch root to its tip: land them as a new commit on top.
-  - The changes ARE related to prior commits: squash with `jj squash`. Squash expects an editor unless given `--use-destination-message`.
-    - If the changes relate to more than one commit:
-      - If the file changes are clean and unrelated, run `jj squash` with just the modified files for each target commit.
-      - If the file changes are dirty, meaning one file was modified in a way that fits multiple commits, undo the state of the file, apply the minimal changes, do the first squash, then sequentially apply the remaining changes and squash each into its commit.
+The ownership check under "rewriting history" decides this, per file. A file some branch commit owns is squashed into that commit with explicit paths. A file no branch commit owns goes into a new commit created with `jj new --no-edit --insert-before`. When one file carries changes that belong to two commits, squash the hunks that belong to the owner first, then squash the remainder into its own target.
 
 When done, report back what was committed or squashed, with the change ID and description of each target. Then wait for a follow-up message.
 
-Touching files spread across several existing branch commits is not a problem, not having a single commit is not a problem. Excuses like this will be rejected:
-
-"The agent chose a new commit on top instead of a squash. Its reason: the change tracks an upstream rename from a commit on main, not part of this branch's history, and it touches files spread across several existing branch commits. No single commit is a clean target."
-
-"Blast radius is real, this is a base commit of the branch. Rewriting it re-pushes three bookmarks and makes six workspaces stale. Conflict risk is low but not zero."
+Files spread across several branch commits, or no single clean target, are not reasons for a new commit on top. They mean several squashes.
 
 ## The order of commits
 
@@ -116,8 +106,7 @@ Instead of adding new commits to the tip of the branch, the agent must follow th
 2. BE changes go next
 3. FE changes go last
 
-Adding a mixed BE/FE commit will be rejected.
-Adding a BE commit to the tip of the branch after a FE commit will be rejected.
+A commit holds BE or FE changes, not both. A BE commit sits below every FE commit, so it is inserted there, not added at the tip.
 
 `--insert-before` is what places a commit in that order. `--insert-before @`
 puts it at the tip; when the order requires it below a commit that is already
@@ -127,11 +116,7 @@ descendants are rebased and no working copy moves.
 
 ## rewriting history
 
-It's preferred and encouraged to rewrite history, no matter how many commits ago it was.
-
-❯ wrong, there should be no deletion of the UrarMarketPreview file because it should have never existed in the first place, if it did you did your job wrong, same for the assignment info. 
-
-For example, one time I asked about deleting some sections. The wrong approach was to delete those sections in a follow up commit. The right approach was to abandon the commits which added them in the first place. If I ask for something to be deleted, it should not be searchable in any part of the branch commits.
+Rewrite history however far back the owner sits. When Daniel asks for something to be removed, remove it from the commit that introduced it, so it appears nowhere in the branch. A follow-up commit that deletes it is the wrong shape.
 
 Squash each file's change into the commit that introduced or last shaped that
 file's feature, never into whatever commit happens to be the handoff's parent.
@@ -168,7 +153,7 @@ and the revset check before each squash still runs.
 
 ## stale workspaces
 
-A parked workspace going stale is expected and irrelevant: its content is on the handoff bookmark and the directory gets deleted. Never run `jj workspace update-stale` in one, and never let anyone else: it rewrites that workspace's files on disk to match a commit, discarding every edit that was never snapshotted, and it can leave the change divergent. A hook blocks it in any workspace under `daniel-workspaces`. If the integration workspace is somehow stale, run `jj workspace update-stale` there and don't mention it to the user.
+A parked workspace going stale is expected and irrelevant: its content is on the handoff bookmark and the directory gets deleted. Never run `jj workspace update-stale` in one, and never let anyone else: it rewrites that workspace's files on disk to match a commit, discarding every edit that was never snapshotted, and it can leave the change divergent. A hook blocks it in any workspace under `daniel-workspaces`. If the integration workspace itself is stale, run `jj workspace update-stale` there and continue.
 
 A stale parked workspace does not block you. You never read from that directory: read the snapshot with `jj diff --git -r 'handoff/<name>'` and squash from the bookmark as usual.
 
