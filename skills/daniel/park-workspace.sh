@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
 # Park an impl workspace's finished work on a handoff/<name> bookmark, which
-# outlives the workspace going stale or being forgotten. /daniel-integrate reads it.
-# The bookmark carries the work, so the script then forgets the workspace and
-# deletes its directory.
+# outlives the workspace going stale or being forgotten. /daniel-integrate reads
+# it. The bookmark points at the tip of whatever stack the workspace built, so it
+# carries every round committed with commit-workspace.sh; the script then forgets
+# the workspace and deletes its directory.
 
 set -Eeuo pipefail
 
@@ -13,6 +14,9 @@ if [[ $# -ne 2 || ${1:-} == '-h' || ${1:-} == '--help' ]]; then
 fi
 
 source=$(jj workspace root 2>/dev/null || jj root)
+# The source workspace's working copy: it and everything trunk-ward of it is
+# history the impl workspace branched off, so it bounds the stack below.
+base=$(jj --ignore-working-copy log --no-graph -r @ -T 'change_id.shortest(12)')
 workspace=$(cd -- "$1" && pwd)
 name=$(basename -- "$workspace")
 bookmark=handoff/$name
@@ -35,18 +39,41 @@ if ! change=$(jj log --no-graph -r @ -T 'change_id.shortest(12)'); then
   printf 'Any edit made after that snapshot is NOT in the files listed below.\n' >&2
 fi
 
-jj --ignore-working-copy describe -r "$change" -m "$2"
+# The stack the workspace built: the rounds commit-workspace.sh described, plus
+# the snapshot above. Only its tip is bookmarked; the rest ride along as
+# ancestors, and /daniel-integrate walks them from the bookmark.
+stack=()
+while read -r commit; do
+  stack+=("$commit")
+done < <(jj --ignore-working-copy log --no-graph --reversed \
+  -r "::$change ~ ::$base" -T 'change_id.shortest(12) ++ "\n"')
+
+# An empty tip is the placeholder commit-workspace.sh left for a round that
+# never came, so the round below it is the tip that holds work.
+if [[ -z $(jj --ignore-working-copy diff --summary -r "$change") ]]; then
+  unset "stack[$((${#stack[@]} - 1))]"
+  if (( ${#stack[@]} == 0 )); then
+    printf 'Nothing to park: %s is empty and no round was committed.\n' "$change" >&2
+    exit 1
+  fi
+  change=${stack[$((${#stack[@]} - 1))]}
+  printf 'Tip was empty, so parking the last committed round (%s).\n' "$change" >&2
+else
+  jj --ignore-working-copy describe -r "$change" -m "$2"
+fi
+
 jj --ignore-working-copy bookmark create "$bookmark" -r "$change"
 
-printf '\nParked at %s\n' "$bookmark"
-jj --ignore-working-copy log --no-graph -r "$change" \
-  -T 'change_id.shortest(8) ++ "  " ++ description.first_line() ++ "\n"'
+printf '\nParked at %s, %s commit(s):\n' "$bookmark" "${#stack[@]}"
+for commit in "${stack[@]}"; do
+  jj --ignore-working-copy log --no-graph -r "$commit" \
+    -T 'change_id.shortest(8) ++ "  " ++ description.first_line() ++ "\n"'
+  jj --ignore-working-copy diff --summary -r "$commit" | sed 's/^/    /'
+done
 
-printf '\nFiles:\n'
-jj --ignore-working-copy diff --summary -r "$change"
-
-scaffolding=$(jj --ignore-working-copy diff --summary -r "$change" \
-  | grep -E 'node_modules/|src/modules/api/generated' || true)
+scaffolding=$(for commit in "${stack[@]}"; do
+    jj --ignore-working-copy diff --summary -r "$commit"
+  done | grep -E 'node_modules/|src/modules/api/generated' || true)
 if [[ -n $scaffolding ]]; then
   printf '\nScaffolding in the snapshot, must not reach a commit:\n%s\n' "$scaffolding"
 fi

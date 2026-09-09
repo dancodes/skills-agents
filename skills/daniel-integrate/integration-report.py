@@ -38,6 +38,21 @@ def parked():
     ]).split()
 
 
+def stack(handoff, root):
+    """Every commit a handoff carries, oldest first: /daniel commits each round
+    Daniel approves with `continue`, and only the tip carries the bookmark."""
+    revset = f"({root}..({handoff})) ~ ::@"
+    return jj([
+        "log",
+        "-r",
+        revset,
+        "--no-graph",
+        "--reversed",
+        "-T",
+        'change_id.shortest(12) ++ "\n"',
+    ]).split() or [handoff]
+
+
 def branch_template():
     return 'change_id.shortest() ++ "  " ++ description.first_line() ++ "\\n"'
 
@@ -77,21 +92,23 @@ def plan(handoffs, root):
         f"branch {branch}",
         jj(["log", "-r", branch, "--no-graph", "-T", branch_template()]),
     )
-    for handoff in handoffs:
+    stacks = [(handoff, stack(handoff, root)) for handoff in handoffs]
+    for handoff, revs in stacks:
         block(
-            f"handoff {handoff}",
-            jj(["log", "-r", handoff, "--no-graph", "-T", bookmark_template()]),
+            f"handoff {handoff}, {len(revs)} commit(s) oldest first",
+            "".join(
+                jj(["log", "-r", rev, "--no-graph", "-T", bookmark_template()])
+                for rev in revs
+            ),
         )
-        block(
-            f"{handoff} files",
-            jj(["diff", "--summary", "-r", handoff]),
-            MAX_LINES,
-        )
+        for rev in revs:
+            block(f"{handoff} {rev} files", jj(["diff", "--summary", "-r", rev]), MAX_LINES)
 
     block("ownership, draft commands and blast radius", owner_report(handoffs, root))
     block("workspaces", jj(["workspace", "list"]))
-    for handoff in handoffs:
-        block(f"{handoff} diff", jj(["diff", "--git", "-r", handoff]))
+    for handoff, revs in stacks:
+        for rev in revs:
+            block(f"{handoff} {rev} diff", jj(["diff", "--git", "-r", rev]))
     return 0
 
 
@@ -115,11 +132,12 @@ def verify(handoffs, targets, root):
     for handoff in handoffs:
         handoff_log = jj(["log", "-r", handoff, "--no-graph", "-T", bookmark_template()])
         block(f"bookmark {handoff}", handoff_log, 3)
-        block(
-            f"handoff {handoff} remainder",
-            jj(["diff", "--summary", "-r", handoff]),
-            MAX_LINES,
-        )
+        for rev in stack(handoff, root):
+            block(
+                f"handoff {handoff} {rev} remainder",
+                jj(["diff", "--summary", "-r", rev]),
+                MAX_LINES,
+            )
     feature_conflicts = jj([
         "log",
         "-r",

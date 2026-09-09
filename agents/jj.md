@@ -34,6 +34,8 @@ Do not run or request a `UserPromptSubmit` hook. If you need clarification, repl
 A handoff bookmark points at the snapshot the park took, so you move content out of it by revision. You never need the workspace, which may be stale or already forgotten:
 
 - `jj squash --from handoff/<name> --into <target> -u [paths...]`
+
+**A handoff can be a stack.** `/daniel` commits every round Daniel approved with `continue`, so `handoff/<name>` is one bookmark on the tip of one commit per round. The preflight report lists each commit of each handoff, oldest first, and resolves targets per commit. Land them in that order and squash `--from <change-id of that commit>`, never `--from handoff/<name>`, which is only the tip. A later round's file can resolve AMBIGUOUS because the lines it edits were written by an earlier round that has not landed yet: land the earlier commit, then re-check that file's owner.
 - To land it as a new commit instead, create the commit first and squash into it:
 
   ```
@@ -178,6 +180,8 @@ from the integration workspace:
 jj diff --summary -r 'handoff/<name>' | grep -E 'node_modules/|src/modules/api/generated'
 ```
 
+Run it per commit of a stacked handoff: the park snapshots the links into whichever round was in the working copy when they appeared.
+
 Anything it prints is scaffolding: symlinks added, or the real files the links
 replaced showing up as deletions. When it prints nothing, execute the plan as
 approved. When it prints something:
@@ -262,5 +266,5 @@ If Daniel rejects an executed result (wrong split, bad message), correct it forw
 Per landed handoff:
 
 - Confirm the shape of the jj branch is as expected, there are no dangling commits, and the commits are in the right order.
-- Confirm the handoff commit is empty, so nothing was left behind: `jj diff --summary -r 'handoff/<name>'` prints only scaffolding, or nothing.
-- `jj bookmark delete handoff/<name>`. This has to happen: after the squash the handoff commit is empty, and leaving the bookmark keeps that empty commit visible and makes the work look unlanded. The workspace itself is already gone: park-workspace.sh forgot and deleted it when the work was parked.
+- Confirm every commit the handoff carried is empty, so nothing was left behind: `jj diff --summary -r '<change-id>'` prints only scaffolding, or nothing, for each of them.
+- `jj bookmark delete handoff/<name>`, once the whole stack has landed. This has to happen: after the squash the handoff commit is empty, and leaving the bookmark keeps that empty commit visible and makes the work look unlanded. The workspace itself is already gone: park-workspace.sh forgot and deleted it when the work was parked.

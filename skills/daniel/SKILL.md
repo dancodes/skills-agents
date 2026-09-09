@@ -41,7 +41,18 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    never decide it yourself.
 3. Spawn the `impl` agent, handing it the workspace directory and the full request. Relay its report (result, modified files, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. Never trim or summarise the hunks, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them.
 4. If Daniel does not approve: send the feedback to the same running `impl` agent via SendMessage. It already has the file context. Spawn a fresh `impl` agent only if the previous one is dead or Daniel asks for a clean take.
-5. If Daniel approves: park the work.
+5. If Daniel says **continue**: he approves this round but the run goes on.
+   Commit the round and keep the workspace and the `impl` agent alive.
+   ```
+   "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/commit-workspace.sh" <workspace-path> "<one-line message>"
+   ```
+   It describes the round's change and moves the workspace onto a fresh
+   working-copy commit on top, so the next round of edits becomes a follow-up
+   commit rather than more of this one. No handoff bookmark is created and
+   nothing is forgotten: the park is the final approval's job. Relay its output
+   verbatim, then take Daniel's next request to the same running `impl` agent.
+   Rounds repeat as often as he wants.
+6. If Daniel approves with nothing further: park the work.
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/park-workspace.sh" <workspace-path> "<one-line message>"
    ```
@@ -49,16 +60,19 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    points a `handoff/<workspace-name>` bookmark at it by change ID, every
    command after the snapshot passing `--ignore-working-copy`. Derive the
    message from the request, one line, no mention of Claude or a co-author.
-   Relay the script's output verbatim: the bookmark, the change ID, the file
-   list, and any scaffolding line it printed.
-6. Stop. Nothing else happens in this run. Do not spawn the `jj` agent and do
+   The bookmark goes on the tip, so every round already committed with
+   `commit-workspace.sh` is parked with it; the message given here describes the
+   last round only, and the earlier commits keep the messages they were
+   committed with. Relay the script's output verbatim: the bookmark, every
+   commit it carries with its change ID and file list, and any scaffolding line
+   it printed.
+7. Stop. Nothing else happens in this run. Do not spawn the `jj` agent and do
    not squash. The park script itself forgets the workspace and deletes its
    directory: the `handoff/<workspace-name>` bookmark carries everything
-   `/daniel-integrate` needs. Tell Daniel the work is parked under
-   `handoff/<workspace-name>`, name the change ID, and offer the two ways
-   forward: `/daniel-integrate` to land it on the feature line, or `/ticket` to
+   `/daniel-integrate` needs. Tell Daniel the work is parked, name the bookmark
+   and the change ID of every commit under it, and offer the two ways forward: `/daniel-integrate` to land it on the feature line, or `/ticket` to
    turn it into a Linear ticket and a pushed branch. `/ticket` with no
-   arguments uses this change.
+   arguments uses these changes.
 
 ## Why parking, and not committing here
 
@@ -70,6 +84,9 @@ stale, and un-snapshotted edits gone.
 
 This run's only job is to leave the work on a bookmark that survives the
 workspace going stale or being forgotten.
+
+`continue` commits inside the impl workspace, which is not the feature line and
+is nobody else's to read. It rewrites nothing shared, so it needs no lock.
 
 ## When the impl agent reports the working copy is stale
 

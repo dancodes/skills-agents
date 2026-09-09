@@ -86,6 +86,15 @@ is the integration workspace: never `cd` into a parked workspace.
    If Daniel stops the run midway, release it before you finish your last
    message. A lock left behind blocks every later integration.
 
+## A handoff can be a stack
+
+`/daniel` commits every round Daniel approved with `continue`, so one
+`handoff/<name>` bookmark can sit on the tip of several commits. The preflight
+report lists each of them, oldest first, and resolves targets per commit. They
+land in that order, in one run, and the bookmark is deleted only once the whole
+stack is in: the later rounds sit on the earlier ones and rebase onto whatever
+those become.
+
 ## One handoff at a time
 
 The `jj` agent may plan all the confirmed handoffs together, because the

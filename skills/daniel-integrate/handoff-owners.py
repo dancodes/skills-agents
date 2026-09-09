@@ -53,6 +53,12 @@ LEGEND = """How to read this
                     is a decision, not a placement.
   -> NEW COMMIT     no branch commit touches this path and it is not a split.
 
+  A handoff is one bookmark on the tip of a stack: every round Daniel approved
+  with `continue` is a commit of its own, reported separately below and landed
+  oldest first. A later round's file can come out AMBIGUOUS because the lines it
+  edits were written by an earlier round that has not landed yet; land the
+  earlier commit first and re-run this report.
+
   Draft commands are a starting point, not a plan, and run deepest first: the
   target nearest the branch root comes before the targets above it. They exclude
   every AMBIGUOUS, RESURRECTED and NEW COMMIT file. SCAFFOLDING lists workspace symlinks and generated files
@@ -75,6 +81,16 @@ def jj(args):
 def parked():
     out = jj(["bookmark", "list", "-r", 'bookmarks(glob:"handoff/*")', "-T", 'name ++ "\n"'])
     return out.split()
+
+
+def stack(handoff, root):
+    """Every commit a handoff carries, oldest first. /daniel commits each round
+    Daniel approves with `continue`, so a handoff is a stack of commits and only
+    its tip carries the bookmark. `~ ::@` drops the feature line the stack sits
+    on."""
+    revset = f"({root}..({handoff})) ~ ::@"
+    return jj(["log", "-r", revset, "--no-graph", "--reversed",
+               "-T", 'change_id.shortest(12) ++ "\n"']).split() or [handoff]
 
 
 def branch_commits(root, handoffs):
@@ -186,7 +202,7 @@ def split_owner(rev, target, cut, by_cid):
     return None, ""
 
 
-def report(rev, root, commits, deleted):
+def report(rev, root, commits, deleted, label=None):
     by_cid = {cid: description for cid, description, _ in commits}
     touches = {cid: paths for cid, _, paths in commits}
     depth = {cid: n for n, (cid, _, _) in enumerate(commits)}
@@ -198,7 +214,7 @@ def report(rev, root, commits, deleted):
         if status == "M":
             cut[target] = {l.strip() for l in hunks(rev, target)[2] if significant(l)}
 
-    print(f"\n## {rev}  ({len(rows)} files)\n")
+    print(f"\n## {label or rev}  ({len(rows)} files)\n")
     groups, unresolved, new_commit = {}, [], []
     for status, source, target in rows:
         paths = [target] if source == target else [source, target]
@@ -295,15 +311,21 @@ def main(argv):
         if not argv:
             print("Nothing parked: no handoff/* bookmark exists.")
             return 0
-    commits, deleted = branch_commits(root, argv)
+    units = [(handoff, stack(handoff, root)) for handoff in argv]
+    commits, deleted = branch_commits(root, [rev for _, revs in units for rev in revs])
     if not commits:
         sys.exit(f"No commits in {root}..@; pass the branch root with --root.")
     print(f"{LEGEND}\n")
     print(f"Branch {root}..@, newest first, with how many paths each commit touches:\n")
     for cid, description, paths in commits:
         print(f"  {cid}  {description}   ({len(paths)} paths)")
-    for rev in argv:
-        report(rev, root, commits, deleted)
+    print("\nParked, oldest commit first:\n")
+    for handoff, revs in units:
+        print(f"  {handoff}  {len(revs)} commit(s): {' '.join(revs)}")
+    for handoff, revs in units:
+        for n, rev in enumerate(revs, 1):
+            label = rev if len(revs) == 1 else f"{handoff} commit {n} of {len(revs)}: {rev}"
+            report(rev, root, commits, deleted, label)
     return 0
 
 
