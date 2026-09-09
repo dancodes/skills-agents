@@ -8,6 +8,10 @@ description: Create one Linear ticket per jj change (branch tip), title only, on
 Turn jj changes into Linear tickets plus pushed branches. Input: one or more jj
 change ids (e.g. `/ticket pnqsvuml utlnmzkl`). No description on the ticket.
 
+Invoked bare (`/ticket`), the target is the change this conversation just
+created, normally the one `/daniel` parked on a `handoff/` bookmark. If this
+conversation created no change, ask which one instead of guessing.
+
 ## Fixed defaults
 
 - `team`: `b1ca64d4-81a8-42fc-91b4-003d490fab39` (Truefootage)

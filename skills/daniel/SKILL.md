@@ -55,8 +55,10 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    not squash. The park script itself forgets the workspace and deletes its
    directory: the `handoff/<workspace-name>` bookmark carries everything
    `/daniel-integrate` needs. Tell Daniel the work is parked under
-   `handoff/<workspace-name>` and that `/daniel-integrate` lands it when he is
-   ready.
+   `handoff/<workspace-name>`, name the change ID, and offer the two ways
+   forward: `/daniel-integrate` to land it on the feature line, or `/ticket` to
+   turn it into a Linear ticket and a pushed branch. `/ticket` with no
+   arguments uses this change.
 
 ## Why parking, and not committing here
 
