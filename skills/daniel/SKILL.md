@@ -35,10 +35,18 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    API client in, and prints the workspace path. The new working copy is based
    on the current one's parents, so it starts on top of the current branch tip.
 
-   Always run it exactly as written, with no other arguments. A branch,
-   bookmark, or ticket name in the request is context for the agents, not a
-   base revision. If you think a different base is necessary, ask Daniel first,
-   never decide it yourself.
+   If Daniel says the work goes on top of an existing commit, pass that
+   revision as a second argument:
+   ```
+   "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/new-workspace.sh" <feature-name> <revision>
+   ```
+   The working copy then starts as `jj new <revision>`. Remember the revision:
+   step 6 needs it.
+
+   Otherwise run it with the feature name alone. A branch, bookmark, or ticket
+   name in the request is context for the agents, not a base revision. If you
+   think a different base is necessary, ask Daniel first, never decide it
+   yourself.
 3. Spawn the `impl` agent, handing it the workspace directory and the full request. Relay its report (result, modified files, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. Never trim or summarise the hunks, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them.
 4. If Daniel does not approve: send the feedback to the same running `impl` agent via SendMessage. It already has the file context. Spawn a fresh `impl` agent only if the previous one is dead or Daniel asks for a clean take.
 5. If Daniel says **continue**: he approves this round but the run goes on.
@@ -52,10 +60,18 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    nothing is forgotten: the park is the final approval's job. Relay its output
    verbatim, then take Daniel's next request to the same running `impl` agent.
    Rounds repeat as often as he wants.
-6. If Daniel approves with nothing further: park the work.
+6. If Daniel approves with nothing further: finish the work.
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/park-workspace.sh" <workspace-path> "<one-line message>"
    ```
+   When the run was based on an existing commit, the work lands there instead of
+   being parked: add `--onto <revision>` and the bookmark on that revision moves
+   up to the tip, or `--onto <revision> --squash` if Daniel asked to squash and
+   the stack folds into that commit, keeping its message. Either way the script
+   clears the workspace as below, there is no handoff bookmark, and there is
+   nothing for `/daniel-integrate` to land: skip step 7's offer and tell Daniel
+   where the work landed.
+
    Parking snapshots the working copy once, then describes that change and
    points a `handoff/<workspace-name>` bookmark at it by change ID, every
    command after the snapshot passing `--ignore-working-copy`. Derive the

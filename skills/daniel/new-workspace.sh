@@ -5,8 +5,8 @@
 
 set -Eeuo pipefail
 
-if [[ $# -ne 1 || ${1:-} == '-h' || ${1:-} == '--help' ]]; then
-  printf 'Usage: new-workspace.sh <feature-name>\n' >&2
+if [[ $# -lt 1 || $# -gt 2 || ${1:-} == '-h' || ${1:-} == '--help' ]]; then
+  printf 'Usage: new-workspace.sh <feature-name> [base-revision]\n' >&2
   exit 2
 fi
 
@@ -25,7 +25,13 @@ ignore() {
 }
 
 mkdir -p "$(dirname -- "$workspace")"
-jj workspace add "$workspace"
+# With a base revision the working copy starts as `jj new <rev>`, so the work
+# builds on that commit instead of on the current branch tip.
+if [[ -n ${2:-} ]]; then
+  jj workspace add --revision "$2" "$workspace"
+else
+  jj workspace add "$workspace"
+fi
 workspace=$(cd -- "$workspace" && pwd)
 
 # Link the contents of each node_modules rather than the directory itself, so

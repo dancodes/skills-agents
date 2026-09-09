@@ -5,19 +5,39 @@
 # it. The bookmark points at the tip of whatever stack the workspace built, so it
 # carries every round committed with commit-workspace.sh; the script then forgets
 # the workspace and deletes its directory.
+#
+# With --onto <rev>, the workspace was based on that revision rather than the
+# branch tip, and the work lands there directly instead of being parked: the
+# bookmark on <rev> moves up to the tip, or with --squash the stack is folded
+# into <rev> itself.
 
 set -Eeuo pipefail
 
-if [[ $# -ne 2 || ${1:-} == '-h' || ${1:-} == '--help' ]]; then
-  printf 'Usage: park-workspace.sh <workspace-path> <one-line-message>\n' >&2
+if [[ $# -lt 2 || ${1:-} == '-h' || ${1:-} == '--help' ]]; then
+  printf 'Usage: park-workspace.sh <workspace-path> <one-line-message> [--onto <rev> [--squash]]\n' >&2
   exit 2
 fi
 
+workspace_arg=$1
+message=$2
+shift 2
+
+onto=
+squash=
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --onto) onto=$2; shift 2 ;;
+    --squash) squash=1; shift ;;
+    *) printf 'Unknown argument: %s\n' "$1" >&2; exit 2 ;;
+  esac
+done
+
 source=$(jj workspace root 2>/dev/null || jj root)
 # The source workspace's working copy: it and everything trunk-ward of it is
-# history the impl workspace branched off, so it bounds the stack below.
-base=$(jj --ignore-working-copy log --no-graph -r @ -T 'change_id.shortest(12)')
-workspace=$(cd -- "$1" && pwd)
+# history the impl workspace branched off, so it bounds the stack below. With
+# --onto, the workspace branched off that revision instead.
+base=$(jj --ignore-working-copy log --no-graph -r "${onto:-@}" -T 'change_id.shortest(12)')
+workspace=$(cd -- "$workspace_arg" && pwd)
 name=$(basename -- "$workspace")
 bookmark=handoff/$name
 
@@ -59,12 +79,16 @@ if [[ -z $(jj --ignore-working-copy diff --summary -r "$change") ]]; then
   change=${stack[$((${#stack[@]} - 1))]}
   printf 'Tip was empty, so parking the last committed round (%s).\n' "$change" >&2
 else
-  jj --ignore-working-copy describe -r "$change" -m "$2"
+  jj --ignore-working-copy describe -r "$change" -m "$message"
 fi
 
-jj --ignore-working-copy bookmark create "$bookmark" -r "$change"
-
-printf '\nParked at %s, %s commit(s):\n' "$bookmark" "${#stack[@]}"
+if [[ -z $onto ]]; then
+  printf '\nParking at %s, %s commit(s):\n' "$bookmark" "${#stack[@]}"
+elif [[ -n $squash ]]; then
+  printf '\nSquashing %s commit(s) into %s:\n' "${#stack[@]}" "$base"
+else
+  printf '\nLanding %s commit(s) on top of %s:\n' "${#stack[@]}" "$base"
+fi
 for commit in "${stack[@]}"; do
   jj --ignore-working-copy log --no-graph -r "$commit" \
     -T 'change_id.shortest(8) ++ "  " ++ description.first_line() ++ "\n"'
@@ -78,9 +102,25 @@ if [[ -n $scaffolding ]]; then
   printf '\nScaffolding in the snapshot, must not reach a commit:\n%s\n' "$scaffolding"
 fi
 
-printf '\nThis workspace is parked. Run no further command in it.\n'
+# The listing above reads the stack commits, so it runs before a squash
+# abandons them.
+if [[ -z $onto ]]; then
+  jj --ignore-working-copy bookmark create "$bookmark" -r "$change"
+elif [[ -n $squash ]]; then
+  # Fold the whole stack into the base commit, keeping its description; any
+  # bookmark on it stays where it is.
+  jj --ignore-working-copy squash --use-destination-message \
+    --from "$base::$change ~ $base" --into "$base"
+else
+  # The work is already commits on top of the base, so landing it is moving
+  # whatever bookmark sat on the base up to the tip.
+  jj --ignore-working-copy bookmark move --from "$base" --to "$change" \
+    || printf 'No bookmark on %s to move; the work is at %s.\n' "$base" "$change" >&2
+fi
 
-# The bookmark holds the work now, so the workspace is disposable. Forget it
+printf '\nThis workspace is finished. Run no further command in it.\n'
+
+# The repository holds the work now, so the workspace is disposable. Forget it
 # from the source workspace, never from inside the one being removed.
 cd -- "$source"
 if jj --ignore-working-copy workspace forget "$name"; then
