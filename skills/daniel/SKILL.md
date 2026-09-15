@@ -54,7 +54,8 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/commit-workspace.sh" <workspace-path> "<one-line message>"
    ```
-   It describes the round's change and moves the workspace onto a fresh
+   Write the message as in step 6. It describes the round's change and moves
+   the workspace onto a fresh
    working-copy commit on top, so the next round of edits becomes a follow-up
    commit rather than more of this one. No handoff bookmark is created and
    nothing is forgotten: the park is the final approval's job. Relay its output
@@ -76,6 +77,12 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    points a `handoff/<workspace-name>` bookmark at it by change ID, every
    command after the snapshot passing `--ignore-working-copy`. Derive the
    message from the request, one line, no mention of Claude or a co-author.
+   Write it for someone who has not seen the diff: lead with the area it touches
+   and a colon (`Backend sensitivity analysis: …`, `Wrap Up export: …`), keep
+   code identifiers in backticks, and cut every word that identifies nothing —
+   adjectives like "analysed", "given" or "existing" narrow no set. `/ticket`
+   copies this line into the Linear title, where it is read in a list of
+   hundreds with no context at all.
    The bookmark goes on the tip, so every round already committed with
    `commit-workspace.sh` is parked with it; the message given here describes the
    last round only, and the earlier commits keep the messages they were
