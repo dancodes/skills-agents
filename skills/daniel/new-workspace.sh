@@ -60,7 +60,8 @@ fi
 # buildinfo, resolved through symlinks, so the ./node_modules prefix is rebased.
 buildinfo=frontend/tsconfig.tsbuildinfo
 if [[ -f $source/$buildinfo && ! -e $workspace/$buildinfo ]]; then
-  modules_prefix=$(realpath --relative-to="$workspace/frontend" "$source/frontend/node_modules")
+  modules_prefix=$(python3 -c 'import os,sys; print(os.path.relpath(*sys.argv[1:]))' \
+    "$source/frontend/node_modules" "$workspace/frontend")
   sed "s|\"\./node_modules/|\"$modules_prefix/|g" "$source/$buildinfo" > "$workspace/$buildinfo"
 fi
 
