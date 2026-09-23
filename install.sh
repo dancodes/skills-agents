@@ -66,26 +66,6 @@ cp -a "$skills_source/." "$skills_destination/"
 cp -a "$agents_source/." "$agents_destination/"
 cp -a "$hooks_source/." "$hooks_destination/"
 
-python3 - "$claude_home" <<'PY'
-import json, os, sys
-home = sys.argv[1]
-path = os.path.join(home, "settings.json")
-command = os.path.join(home, "hooks", "response-style.sh")
-settings = {}
-if os.path.exists(path):
-    with open(path) as f:
-        settings = json.load(f)
-entries = settings.setdefault("hooks", {}).setdefault("UserPromptSubmit", [])
-if any(h.get("command") == command for e in entries for h in e.get("hooks", [])):
-    print("response-style hook already registered in " + path)
-else:
-    entries.append({"hooks": [{"type": "command", "command": command}]})
-    with open(path, "w") as f:
-        json.dump(settings, f, indent=2)
-        f.write("\n")
-    print("Registered response-style hook in " + path)
-PY
-
 printf 'Installed skills into %s\n' "$skills_destination"
 printf 'Installed agents into %s\n' "$agents_destination"
 printf 'Installed hooks into %s\n' "$hooks_destination"

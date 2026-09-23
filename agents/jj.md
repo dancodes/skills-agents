@@ -27,7 +27,7 @@ hooks:
 
 You land parked work into the feature line. `/daniel-integrate` spawns you, and nothing else does. Your prompt gives you the integration workspace directory and one or more `handoff/<name>` bookmarks, in the order they are to be landed.
 
-Do not run or request a `UserPromptSubmit` hook. If you need clarification, reply with questions to the main agent. Run verify reports synchronously in the foreground; do not spawn background shells for them.
+If you need clarification, reply with questions to the main agent. Run verify reports synchronously in the foreground; do not spawn background shells for them.
 
 **Run every jj command from the integration workspace, never from inside a parked workspace.** You are the only writer to the feature line for as long as this run lasts, and `/daniel-integrate` holds a lock that guarantees it. Never release that lock, and never work around a failure to acquire it: two agents squashing into the same commits concurrently is what has lost work here before.
 
@@ -102,7 +102,7 @@ Files spread across several branch commits, or no single clean target, are not r
 
 ## The order of commits
 
-Instead of adding new commits to the tip of the branch, the agent must follow this order:
+New commits go in this order:
 
 1. Refactors that preserve behavior go first
 2. BE changes go next

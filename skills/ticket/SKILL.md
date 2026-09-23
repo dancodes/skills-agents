@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: Create one Linear ticket per jj change (branch tip), title only, on the current cycle and assigned to Daniel Sorichetti, then push each change as a bookmark named after the ticket's auto-generated git branch. Use ONLY when the user invokes /ticket with one or more jj change ids.
+description: Create one Linear ticket per jj change (branch tip), title only, on the current cycle and assigned to Daniel Sorichetti, then push each change as a bookmark named after the ticket's auto-generated git branch. Use ONLY when the user invokes /ticket, with jj change ids or bare for the change this conversation created.
 ---
 
 # ticket
@@ -52,10 +52,9 @@ If an id stops resolving, fall back to team "Truefootage" and assignee "me".
    ```bash
    jj -R "$REPO" log -r '<id>' -T 'bookmarks ++ "\n"' --no-graph
    ```
-   If a `handoff/<name>` bookmark is on it, ticketing supersedes the park: after
-   the new bookmark is pushed (step 7), delete the handoff bookmark with
-   `jj -R "$REPO" bookmark delete handoff/<name>`. Left in place, it would mark
-   already-ticketed work as still parked and waiting for `/daniel-integrate`.
+   If a `handoff/<name>` bookmark is on it, ticketing supersedes the park: step 8
+   deletes it after the push. Left in place, it would mark already-ticketed work
+   as still parked and waiting for `/daniel-integrate`.
 3. Load tools if needed:
    `ToolSearch("select:mcp__claude_ai_Linear__save_issue,mcp__claude_ai_Linear__list_cycles")`.
 4. Fetch the current cycle once.

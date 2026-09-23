@@ -79,7 +79,7 @@ One line, no mention of Claude, no co-author trailer.
 
 ## The brief to hand the impl agent
 
-Give it all of this. The rules exist because each one has been broken before.
+Give it all of this.
 
 ### 1. Measure first, and say what you measured
 
@@ -163,7 +163,7 @@ up.
 Strip it from every comment, docstring, test name and identifier in the files
 you touch.
 
-Named offenders, all of which have appeared in this codebase:
+Named offenders:
 
 > fold / folded / folds, seam, load-bearing, surface (as a noun for an API),
 > short-circuit, blast radius, carry / carries (where "has" or "copy" works),

@@ -24,7 +24,7 @@ You implement code changes inside the workspace directory given in your prompt. 
 - Write tests if that is what the repository does.
 - Run integration tests one file at a time: `VITEST_MAX_WORKERS=1 yarn test:integration --run <the one test file you are working on>`. Never a folder, never a glob, never the bare suite, and never a folder walked file by file in a loop or a chain: that is the whole folder with extra startup cost. A full `yarn test:integration` is over an hour, and a fast loop on the file you are writing is the point; CI runs the rest and catches regressions elsewhere. The config sets `maxWorkers: 2`, which is right for one suite on this 2-core machine but pushes it to ~130% CPU; several workspaces running that at once starve each other. A hook enforces all of this.
 - Typecheck only through `python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/typecheck.py"`, run from your workspace directory. It takes the same arguments as `yarn typecheck` and runs it with one checker, which on this 2-core machine is faster than the default four and takes half the memory. A hook blocks `yarn typecheck`, `tsgo` and `tsc` run directly.
-- Do NOT run any write git or jj commands. `jj workspace update-stale` counts as one, and is the worst of them: it rewrites the files on disk to match a commit, discarding every edit you have not snapshotted yet. A hook blocks it. Your work must live in the working copy only. You may read from the repository using jj commands (jj log, jj diff, jj file show). Every `jj diff` you run must pass `--git`; only `--summary`, `--stat`, or `--name-only` may replace it, and only when you need nothing but the file list. A hook blocks the other forms.
+- Do not run write git or jj commands. `jj workspace update-stale` counts as one, and is the worst of them: it rewrites the files on disk to match a commit, discarding every edit you have not snapshotted yet. A hook blocks it. Your work must live in the working copy only. You may read from the repository using jj commands (jj log, jj diff, jj file show). Every `jj diff` you run must pass `--git`; only `--summary`, `--stat`, or `--name-only` may replace it, and only when you need nothing but the file list. A hook blocks the other forms.
 - When Daniel approves a round but wants the work to go on, the orchestrator commits that round for you and the workspace lands on a fresh empty working-copy commit. Nothing on disk changes and you keep the file context: carry on editing, and your next round snapshots into that new commit as a follow-up. Do not commit it yourself.
 - You never commit, squash, or bookmark anything. When Daniel approves your report the orchestrator parks the work: it describes your working-copy commit and marks it with a `handoff/<workspace-name>` bookmark, and `/daniel-integrate` lands it later. A hook blocks the mutating commands from this workspace, because several agents rewriting the same commits at once is how work has been lost here.
 
@@ -69,13 +69,10 @@ to resolve the divergence yourself.
 ## Before you report: the comment pass
 
 Once the implementation is done and snapshotted, run the `no-comments` skill
-inline yourself. It is not optional and it runs on every round of edits before
-you report, including after follow-up feedback.
-
-Finish the pass before you report. Do not spawn a comment reviewer or wait for
-one. Delete comments you wrote when they fail the skill's exception list, apply
-local `MUST KILL` fixes, and carry wider flags into your report. Ending your turn
-before this pass is complete leaves comments you never reviewed.
+inline yourself, on every round of edits before you report, including after
+follow-up feedback. Delete comments you wrote when they fail the skill's
+exception list, apply local `MUST KILL` fixes, and carry wider flags into your
+report.
 
 When done, report back with:
 
