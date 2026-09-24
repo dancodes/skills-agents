@@ -155,3 +155,8 @@ const unmappedGroup = unmapped.length > 0 ? [{
 
 export const wrapUpGroups: readonly WrapUpGroup[] = [...mappedGroups, ...unmappedGroup];
 ```
+### CP3: Top-down order
+
+Order definitions in a file so it reads top to bottom, like a newspaper: the entry point or public container first, then the functions and classes it calls, then the leaves they call. A reader meets each name at its call site before its definition. Helpers sit below their first caller, in the order that caller uses them. A class's public methods come before the private helpers they call.
+
+The one exception: a definition that module-level code runs at load time (a `const` arrow function, a class, a base class) must stay above that code, because it is not hoisted.
