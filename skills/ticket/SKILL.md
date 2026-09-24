@@ -14,11 +14,11 @@ conversation created no change, ask which one instead of guessing.
 
 ## Fixed defaults
 
-- `team`: `b1ca64d4-81a8-42fc-91b4-003d490fab39` (Truefootage)
+- `team`: `6e02ffdf-a64b-431d-9907-e15ba193ac89` (True Tracts, key `TT`)
 - `assignee`: `6f5ba700-39da-43ab-963b-a91ffb91df9d` (Daniel Sorichetti)
 - `cycle`: the team's current cycle, from `list_cycles` with `type: current`
 
-If an id stops resolving, fall back to team "Truefootage" and assignee "me".
+If an id stops resolving, fall back to team "TT" and assignee "me".
 
 ## Flow
 
@@ -63,7 +63,7 @@ If an id stops resolving, fall back to team "Truefootage" and assignee "me".
 6. Create one ticket per change with `save_issue` (team, assignee, cycle, title;
    nothing else). Take `gitBranchName` from each response.
 7. Prefix each commit's description with the ticket id if it lacks one:
-   `jj -R "$REPO" describe -r <commit> -m "[TF-NNNN] <existing first line>"`.
+   `jj -R "$REPO" describe -r <commit> -m "[TT-NNNN] <existing first line>"`.
 8. Bookmark and push, all in one go:
    ```bash
    jj -R "$REPO" bookmark create <gitBranchName> -r <id>
@@ -72,7 +72,7 @@ If an id stops resolving, fall back to team "Truefootage" and assignee "me".
    `--bookmark` already pushes new bookmarks; `--allow-new` does not exist in
    this jj version. If step 2 found a handoff bookmark on this change, delete
    it now: `jj -R "$REPO" bookmark delete handoff/<name>`.
-9. Confirm with `jj -R "$REPO" bookmark list --tracked 'glob:danielsorichetti/tf-*'`.
+9. Confirm with `jj -R "$REPO" bookmark list --tracked 'glob:danielsorichetti/tt-*'`.
 
 ## Report
 
