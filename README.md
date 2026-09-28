@@ -17,6 +17,8 @@ Prerequisites:
 ```
 
 Copies `skills/`, `agents/` and `hooks/` into `~/.claude` (or `$CLAUDE_HOME`).
+Each repo skill directory replaces its installed copy whole, so files deleted
+from the repo are deleted there too. Skills not in this repo are left alone.
 When `pi` is installed, it also renders `skills/` and `agents/` for Pi via
 `scripts/render-pi-markdown.py` and installs them into `~/.pi/agent` (or
 `$PI_CODING_AGENT_DIR`):

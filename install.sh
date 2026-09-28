@@ -17,7 +17,8 @@ Environment:
   PI_CODING_AGENT_DIR  Override Pi's agent directory (default: ~/.pi/agent).
                        Only used when the pi command is installed.
 
-Claude Code always gets skills/, agents/ and hooks/ copied verbatim. When the
+Claude Code always gets skills/, agents/ and hooks/ copied verbatim. Each
+skill directory is replaced whole, so files removed from the repo go too. When the
 `pi` command exists, skills/ and agents/ are also rendered for Pi (hooks
 stripped, Claude tool names mapped to Pi tool names, config path expressions
 rewritten) and installed there; hooks/ are never installed for Pi. Without
@@ -62,7 +63,16 @@ agents_destination="$claude_home/agents"
 hooks_destination="$claude_home/hooks"
 mkdir -p "$skills_destination" "$agents_destination" "$hooks_destination"
 
-cp -a "$skills_source/." "$skills_destination/"
+replace_skills() {
+  local destination=$1 skill
+  for skill in "$skills_source"/*/; do
+    skill=$(basename "$skill")
+    rm -rf "${destination:?}/$skill"
+    cp -a "$skills_source/$skill" "$destination/$skill"
+  done
+}
+
+replace_skills "$skills_destination"
 cp -a "$agents_source/." "$agents_destination/"
 cp -a "$hooks_source/." "$hooks_destination/"
 
@@ -83,7 +93,7 @@ pi_agents_destination="$pi_agent_dir/agents"
 mkdir -p "$pi_skills_destination" "$pi_agents_destination"
 
 # Rendered SKILL.md overwrites the copied one; cp -a keeps executable bits.
-cp -a "$skills_source/." "$pi_skills_destination/"
+replace_skills "$pi_skills_destination"
 find "$pi_skills_destination" -name SKILL.md -type f -print0 | while IFS= read -r -d '' skill; do
   rel=${skill#"$pi_skills_destination"/}
   python3 "$renderer" skill "$skill" > "$skill.rendered"

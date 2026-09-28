@@ -86,4 +86,14 @@ sums "$pi_home" > "$tmp/second.sums"
 diff "$tmp/first.sums" "$tmp/second.sums" || fail "second install changed the Pi tree"
 echo "ok: install is idempotent"
 
+touch "$claude_home/skills/attach-tracker/stale.md" "$pi_home/skills/attach-tracker/stale.md"
+mkdir -p "$claude_home/skills/not-ours" && touch "$claude_home/skills/not-ours/SKILL.md"
+PATH="$tmp/bin:$PATH" PI_CODING_AGENT_DIR="$pi_home" CLAUDE_HOME="$claude_home" \
+  "$source_root/install.sh" > /dev/null
+diff -r "$source_root/skills/attach-tracker" "$claude_home/skills/attach-tracker" \
+  || fail "Claude attach-tracker does not match the repo"
+[[ -e $pi_home/skills/attach-tracker/stale.md ]] && fail "stale file survived in Pi skill"
+[[ -f $claude_home/skills/not-ours/SKILL.md ]] || fail "install removed a skill it does not own"
+echo "ok: install replaces repo skills exactly"
+
 echo "ALL TESTS PASSED"
