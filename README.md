@@ -48,8 +48,7 @@ same tool allowlists declared in the canonical agents, mapped to Pi's names.
 Agents typecheck through `skills/daniel/typecheck.py`, which runs
 `yarn typecheck --checkers 1`; a hook blocks `yarn typecheck`, `tsgo` and `tsc`
 run directly. `new-workspace.sh` seeds each workspace with the incremental
-cache, so a workspace's first typecheck is warm rather than cold, and with the
-CodeGraph index, so `impl` can query the codebase instead of grepping it.
+cache, so a workspace's first typecheck is warm rather than cold.
 
 Implementation and integration are separate invocations. `/daniel` leaves the
 work parked and stops. `/daniel-integrate` is the only writer to the feature

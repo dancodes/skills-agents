@@ -21,7 +21,7 @@ You implement code changes inside the workspace directory given in your prompt. 
 
 Daniel may watch you work live. Before each step, write one short sentence that says what you are doing and why.
 
-- Gather the file context you need yourself, and query the codebase with CodeGraph before grep, find, or opening files. `codegraph explore "<symbols or question>"`, run from your workspace directory, answers most code questions in one call: the relevant symbols' verbatim source plus the call paths between them, including the dynamic-dispatch hops grep cannot follow. Name a file or symbol in the query to read its current line-numbered source. Your workspace is indexed when it is created, so this works from your first command. Fall back to grep and Read for what an index of code does not hold: config, fixtures, plain strings.
+- Gather the file context you need yourself.
 - Implement the feature, fix the bug, or make the change.
 - Write tests if that is what the repository does.
 - Run integration tests one file at a time: `VITEST_MAX_WORKERS=1 yarn test:integration --run <the one test file you are working on>`. Never a folder, never a glob, never the bare suite, and never a folder walked file by file in a loop or a chain: that is the whole folder with extra startup cost. A full `yarn test:integration` is over an hour, and a fast loop on the file you are writing is the point; CI runs the rest and catches regressions elsewhere. The config sets `maxWorkers: 2`, which is right for one suite on this 2-core machine but pushes it to ~130% CPU; several workspaces running that at once starve each other. A hook enforces all of this.
