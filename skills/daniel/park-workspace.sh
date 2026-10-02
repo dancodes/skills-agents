@@ -68,6 +68,13 @@ while read -r commit; do
 done < <(jj --ignore-working-copy log --no-graph --reversed \
   -r "::$change ~ ::$base" -T 'change_id.shortest(12) ++ "\n"')
 
+# Once the source working copy sits on top of the work, every round is history
+# it branched off, so the range above is empty and only the tip can be named.
+if (( ${#stack[@]} == 0 )); then
+  printf 'The source working copy sits on top of %s, so only the tip is listed. The rounds below it still ride along under the bookmark.\n' "$change" >&2
+  stack=("$change")
+fi
+
 # An empty tip is the placeholder commit-workspace.sh left for a round that
 # never came, so the round below it is the tip that holds work.
 if [[ -z $(jj --ignore-working-copy diff --summary -r "$change") ]]; then

@@ -29,7 +29,10 @@ If an id stops resolving, fall back to team "TT" and assignee "me".
    REPO=$(jj root)
    ```
    Run every subsequent `jj` command as `jj -R "$REPO" ...`. Never hardcode a
-   repo path.
+   repo path. `jj root` names the default checkout, which goes stale once a
+   workspace rewrites its commits; if a command fails with "The working copy is
+   stale", rerun it with `--ignore-working-copy`. Never run
+   `jj workspace update-stale`: it rewrites files other agents are using.
 1. **Describe first.** For each change id, inspect its branch commits with a
    template that never prints a blank line, so an empty result is unmistakable:
    ```bash
