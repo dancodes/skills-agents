@@ -35,19 +35,20 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    API client in, and prints the workspace path. The new working copy is based
    on the current one's parents, so it starts on top of the current branch tip.
 
-   If Daniel says the work goes on top of an existing commit, pass that
-   revision as a second argument:
+   If the request names a bookmark, a change ID or a commit to work on ("based
+   on main", "fix issues at danielsorichetti/tt-142-…", "mpqnynpn as base
+   revision"), that is the base. Pass it as a second argument:
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/new-workspace.sh" <feature-name> <revision>
    ```
    The working copy then starts as `jj new <revision>`. Remember the revision:
    step 6 needs it.
 
-   Otherwise run it with the feature name alone. A branch, bookmark, or ticket
-   name in the request is context for the agents, not a base revision. If you
-   think a different base is necessary, ask Daniel first, never decide it
-   yourself.
-3. Spawn the `impl` agent, handing it the workspace directory and the full request. Relay its report (result, modified files, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. Never trim or summarise the hunks, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them.
+   If the request names no bookmark or revision, ask Daniel for the base in one
+   line before you create the workspace. A ticket ID alone is not a revision.
+   Run it with the feature name alone only when he says to use the current
+   branch tip. Never pick a base yourself.
+3. Spawn the `impl` agent, handing it the workspace directory and the full request. Relay its report (result, modified files, removed safeguards, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. Never trim or summarise the hunks, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them.
 4. If Daniel does not approve: send the feedback to the same running `impl` agent via SendMessage. It already has the file context. Spawn a fresh `impl` agent only if the previous one is dead or Daniel asks for a clean take.
 5. If Daniel says **continue**: he approves this round but the run goes on.
    Commit the round and keep the workspace and the `impl` agent alive.
@@ -71,7 +72,8 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    the stack folds into that commit, keeping its message. Either way the script
    clears the workspace as below, there is no handoff bookmark, and there is
    nothing for `/daniel-integrate` to land: skip step 7's offer and tell Daniel
-   where the work landed.
+   where the work landed. When the base is `main`, park without `--onto`:
+   landing there moves the `main` bookmark.
 
    Parking snapshots the working copy once, then describes that change and
    points a `handoff/<workspace-name>` bookmark at it by change ID, every
