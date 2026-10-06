@@ -41,11 +41,13 @@ summary:focus-visible, button:focus-visible, a:focus-visible { outline: 2px soli
 .link:hover { background: var(--soft); }
 .empty { color: var(--soft); font-size: 14px; margin: 0; padding: 0 4px; }
 #status { color: #ffb3c1; font-size: 13px; margin: 0; }
+#owner { color: var(--soft); font-size: 12px; margin: 8px 0 0; padding: 0 4px; overflow-wrap: anywhere; }
 </style>
 
 <main>
   <p id="status" hidden></p>
   <div id="list"></div>
+  <p id="owner" hidden></p>
 </main>
 
 <script>
@@ -114,5 +116,10 @@ render();
     $("#status").hidden = true;
     render();
   }, showErr);
+  db.doc("meta/owner").onSnapshot(snap => {
+    const o = snap.exists ? snap.data() : null, el = $("#owner");
+    el.hidden = !o;
+    if (o) el.textContent = `Planner session: ${String(o.sessionName || "unnamed")} · ${String(o.sessionId || "")}`;
+  }, () => {});
 })();
 </script>
