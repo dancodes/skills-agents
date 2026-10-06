@@ -12,12 +12,13 @@ Input:
 - `/daniel-planning <artifact URL or id> [<tasks>]`: the board already exists
   and another session owns it. This session joins it.
 
-The board is a black page with one purple box per task. Each box starts open
-and shows its steps, each done, in progress or to do, and an optional link
-pill. The footer names the owner session. Only the owner session's subagent,
-the _planner_, writes the page and its data. A joining session's subagent, the
-_messenger_, sends changes to the owner session. Either way, you are the relay:
-every change goes to your subagent as a message, in the update format below.
+The board is a black page with purple task boxes, up to four per row. Each box
+starts open and shows its steps, each done, in progress or to do, and an
+optional link pill. The footer names the owner session. Only the owner
+session's subagent, the _planner_, writes the page and its data. A joining
+session's subagent, the _messenger_, sends changes to the owner session. Either
+way, you are the relay: every change goes to your subagent as a message, in the
+update format below.
 
 ## Owner steps
 

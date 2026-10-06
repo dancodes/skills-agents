@@ -14,8 +14,12 @@
 }
 * { box-sizing: border-box; }
 body { font-family: var(--font); color: var(--fg); background: var(--bg); padding-block: 32px; padding-inline: 16px; }
-main { max-width: 720px; margin: 0 auto; display: grid; gap: 12px; }
-#list { display: grid; gap: 12px; }
+main { max-width: 1280px; margin: 0 auto; display: grid; gap: 12px; }
+#list { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+#list > details { flex: 0 1 calc((100% - 36px) / 4); min-width: 0; }
+#list > p { flex-basis: 100%; }
+@media (max-width: 1000px) { #list > details { flex-basis: calc((100% - 12px) / 2); } }
+@media (max-width: 560px) { #list > details { flex-basis: 100%; } }
 details { background: var(--box); border-radius: 16px; }
 summary { list-style: none; cursor: pointer; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-weight: 500; }
 summary::-webkit-details-marker { display: none; }
