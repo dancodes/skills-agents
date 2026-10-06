@@ -1,0 +1,116 @@
+<title>Task Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<style>
+/* All-black page, one column of purple boxes that expand to show steps. Single dark look by choice. */
+:root {
+  --bg: #000000;
+  --box: #632bf0;
+  --box-deep: #4d28b3;
+  --fg: #ffffff;
+  --soft: #e8e0ff;
+  --lime: #d4f55c;
+  --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { font-family: var(--font); color: var(--fg); background: var(--bg); padding-block: 32px; padding-inline: 16px; }
+main { max-width: 720px; margin: 0 auto; display: grid; gap: 12px; }
+#list { display: grid; gap: 12px; }
+details { background: var(--box); border-radius: 16px; }
+summary { list-style: none; cursor: pointer; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-weight: 500; }
+summary::-webkit-details-marker { display: none; }
+summary:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+.head { min-width: 0; display: grid; gap: 2px; }
+.name { min-width: 0; overflow-wrap: anywhere; font-size: 17px; }
+.when { font-size: 12px; font-weight: 400; color: var(--soft); }
+.count { flex: none; font-size: 13px; color: var(--soft); font-variant-numeric: tabular-nums; }
+.body { padding: 0 12px 12px; display: grid; gap: 6px; }
+.step { font: inherit; color: inherit; width: 100%; text-align: left; background: var(--box-deep); border: 0; border-radius: 10px; padding: 12px; display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.box { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--soft); display: grid; place-items: center; margin-top: 1px; }
+.done .box { background: var(--lime); border-color: var(--lime); }
+.done .box::after { content: ""; width: 7px; height: 4px; border: solid var(--bg); border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg); }
+.txt { min-width: 0; overflow-wrap: anywhere; line-height: 1.45; font-size: 14px; }
+.done .txt { color: var(--soft); text-decoration: line-through; }
+.link { justify-self: start; display: inline-flex; align-items: center; gap: 10px; background: var(--fg); color: var(--bg); text-decoration: none; border-radius: 999px; padding: 8px 14px 8px 8px; font-size: 14px; font-weight: 500; margin-bottom: 4px; min-width: 0; }
+.link .ico { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--box); display: grid; place-items: center; }
+.link .ico svg { width: 14px; height: 14px; stroke: var(--fg); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.link .lbl { min-width: 0; overflow-wrap: anywhere; }
+.link .arrow { flex: none; width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.link:hover { background: var(--soft); }
+.empty { color: var(--soft); font-size: 14px; margin: 0; padding: 0 4px; }
+#status { color: #ffb3c1; font-size: 13px; margin: 0; }
+</style>
+
+<main>
+  <p id="status" hidden></p>
+  <div id="list"></div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  Object.assign(el, props || {});
+  kids.flat().forEach(k => k != null && el.append(k));
+  return el;
+}
+let db = null, tasks = null;
+const open = new Set();
+const queues = {};
+function queue(id, fn) {
+  queues[id] = (queues[id] || Promise.resolve()).then(fn).catch(showErr);
+  return queues[id];
+}
+function showErr(e) {
+  const s = $("#status");
+  s.textContent = e && e.code === "quota_exceeded" ? "Storage is full." : "Could not save. Try again.";
+  s.hidden = false;
+}
+function norm(snap) {
+  const d = snap.data() || {};
+  const steps = Array.isArray(d.steps) ? d.steps.map(s => ({ text: String((s && s.text) ?? s), done: !!(s && s.done) })) : [];
+  return { id: snap.id, name: String(d.name || "Untitled task"), url: typeof d.url === "string" ? d.url : "", linkLabel: typeof d.linkLabel === "string" ? d.linkLabel : "", createdAt: Number(d.createdAt) || 0, steps };
+}
+
+function render() {
+  const list = $("#list");
+  if (!tasks) return list.replaceChildren(h("p", { className: "empty", textContent: db === null ? "Loading…" : "Tasks are not available in this view." }));
+  if (!tasks.length) return list.replaceChildren(h("p", { className: "empty", textContent: "No tasks yet." }));
+  list.replaceChildren(...tasks.map(c => {
+    const n = c.steps.filter(s => s.done).length;
+    const d = h("details", { open: open.has(c.id) },
+      h("summary", {}, h("span", { className: "head" }, h("span", { className: "name", textContent: c.name }),
+        c.createdAt ? h("span", { className: "when", textContent: new Date(c.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) }) : null), h("span", { className: "count", textContent: `${n}/${c.steps.length}` })),
+      h("div", { className: "body" },
+        /^https?:\/\//i.test(c.url) ? linkChip(c) : null,
+        c.steps.length ? c.steps.map((s, i) => h("button", { className: "step" + (s.done ? " done" : ""), type: "button", onclick: () => toggle(c, i) },
+          h("span", { className: "box" }), h("span", { className: "txt", textContent: s.text }))) : h("p", { className: "empty", textContent: "No steps." })));
+    d.addEventListener("toggle", () => d.open ? open.add(c.id) : open.delete(c.id));
+    return d;
+  }));
+}
+const ICON = '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 0 0-3-3h-4m2-2-2 2 2 2"/></svg>';
+const ARROW = '<svg class="arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg>';
+function linkChip(c) {
+  const a = h("a", { className: "link", href: c.url, target: "_blank", rel: "noopener" },
+    h("span", { className: "ico", innerHTML: ICON }), h("span", { className: "lbl", textContent: c.linkLabel || new URL(c.url).hostname }));
+  a.insertAdjacentHTML("beforeend", ARROW);
+  return a;
+}
+function toggle(c, i) {
+  const steps = c.steps.map((s, j) => j === i ? { ...s, done: !s.done } : s);
+  queue(c.id, () => db.collection("tasks").doc(c.id).update({ steps, updatedAt: Date.now() }));
+}
+
+
+render();
+(async () => {
+  try { db = window.claude ? await window.claude.use("db") : false; } catch { db = false; }
+  if (!db) { db = false; tasks = null; return render(); }
+  db.collection("tasks").orderBy("createdAt", "desc").onSnapshot(snap => {
+    tasks = snap.docs.map(norm);
+    $("#status").hidden = true;
+    render();
+  }, showErr);
+})();
+</script>
