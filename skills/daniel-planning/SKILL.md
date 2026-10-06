@@ -8,10 +8,10 @@ disable-model-invocation: true
 
 Input: `/daniel-planning` or `/daniel-planning <tasks>`.
 
-The board is a black page with one purple box per task. Each box opens to its
-steps, each done or to do, and to an optional link pill. One background Sonnet
-subagent, the _planner_, owns the page and its data. You are the relay: every
-change goes to the planner as a message.
+The board is a black page with one purple box per task. Each box starts open
+and shows its steps, each done, in progress or to do, and an optional link
+pill. One background Sonnet subagent, the _planner_, owns the page and its
+data. You are the relay: every change goes to the planner as a message.
 
 ## Steps
 
@@ -43,9 +43,9 @@ First run:
 5. Reply with the artifact URL and nothing else. Then stop.
 
 When a message arrives:
-- Task changes (add, remove, rename, step done or to do, link): write the
-  `tasks` documents with ArtifactData. Read a document first, and pass its
-  `version` as `if_version` on every write to it.
+- Task changes (add, remove, rename, step done, in progress or to do, link):
+  write the `tasks` documents with ArtifactData. Read a document first, and
+  pass its `version` as `if_version` on every write to it.
 - Look changes (colors, sizes, wording, layout): edit the page file, keep its
   data code working, and republish the same path with no `icon` and no
   `capabilities`.
@@ -56,9 +56,11 @@ Task document, id a short slug such as `mr-7255`:
  "url": "https://gitlab.com/.../merge_requests/7255",
  "linkLabel": "Merge request !7255",
  "steps": [{"text": "Cody writes it", "done": true},
-           {"text": "I review it", "done": false}],
+           {"text": "I fix the findings", "done": false, "doing": true},
+           {"text": "I merge it", "done": false}],
  "createdAt": <ms since epoch>, "updatedAt": <ms since epoch>}
-`url` and `linkLabel` are optional. Get the time with `date +%s%3N`.
+`url`, `linkLabel` and `doing` (in progress) are optional. Get the time with
+`date +%s%3N`.
 
 Initial tasks:
 <TASKS>
@@ -74,6 +76,7 @@ One line per change, naming the task by its name:
 ```
 add "Review Cody's MR", link https://gitlab.com/.../7255 "Merge request !7255", steps: Cody writes it (done); I review it; I merge it
 done "Review Cody's MR": I review it
+in progress "Review Cody's MR": I fix the findings
 to do "Review Cody's MR": I review it
 remove "Review Cody's MR"
 look: make the task titles larger

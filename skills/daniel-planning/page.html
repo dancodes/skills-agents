@@ -29,6 +29,8 @@ summary:focus-visible, button:focus-visible, a:focus-visible { outline: 2px soli
 .box { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--soft); display: grid; place-items: center; margin-top: 1px; }
 .done .box { background: var(--lime); border-color: var(--lime); }
 .done .box::after { content: ""; width: 7px; height: 4px; border: solid var(--bg); border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg); }
+.doing .box { border-color: var(--lime); background: linear-gradient(90deg, var(--lime) 50%, transparent 50%); }
+.tag { margin-left: 8px; font-size: 11px; font-weight: 500; color: var(--lime); white-space: nowrap; }
 .txt { min-width: 0; overflow-wrap: anywhere; line-height: 1.45; font-size: 14px; }
 .done .txt { color: var(--soft); text-decoration: line-through; }
 .link { justify-self: start; display: inline-flex; align-items: center; gap: 10px; background: var(--fg); color: var(--bg); text-decoration: none; border-radius: 999px; padding: 8px 14px 8px 8px; font-size: 14px; font-weight: 500; margin-bottom: 4px; min-width: 0; }
@@ -55,7 +57,7 @@ function h(tag, props, ...kids) {
   return el;
 }
 let db = null, tasks = null;
-const open = new Set();
+const closed = new Set();
 const queues = {};
 function queue(id, fn) {
   queues[id] = (queues[id] || Promise.resolve()).then(fn).catch(showErr);
@@ -68,7 +70,7 @@ function showErr(e) {
 }
 function norm(snap) {
   const d = snap.data() || {};
-  const steps = Array.isArray(d.steps) ? d.steps.map(s => ({ text: String((s && s.text) ?? s), done: !!(s && s.done) })) : [];
+  const steps = Array.isArray(d.steps) ? d.steps.map(s => ({ text: String((s && s.text) ?? s), done: !!(s && s.done), doing: !!(s && s.doing && !s.done) })) : [];
   return { id: snap.id, name: String(d.name || "Untitled task"), url: typeof d.url === "string" ? d.url : "", linkLabel: typeof d.linkLabel === "string" ? d.linkLabel : "", createdAt: Number(d.createdAt) || 0, steps };
 }
 
@@ -78,14 +80,14 @@ function render() {
   if (!tasks.length) return list.replaceChildren(h("p", { className: "empty", textContent: "No tasks yet." }));
   list.replaceChildren(...tasks.map(c => {
     const n = c.steps.filter(s => s.done).length;
-    const d = h("details", { open: open.has(c.id) },
+    const d = h("details", { open: !closed.has(c.id) },
       h("summary", {}, h("span", { className: "head" }, h("span", { className: "name", textContent: c.name }),
         c.createdAt ? h("span", { className: "when", textContent: new Date(c.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) }) : null), h("span", { className: "count", textContent: `${n}/${c.steps.length}` })),
       h("div", { className: "body" },
         /^https?:\/\//i.test(c.url) ? linkChip(c) : null,
-        c.steps.length ? c.steps.map((s, i) => h("button", { className: "step" + (s.done ? " done" : ""), type: "button", onclick: () => toggle(c, i) },
-          h("span", { className: "box" }), h("span", { className: "txt", textContent: s.text }))) : h("p", { className: "empty", textContent: "No steps." })));
-    d.addEventListener("toggle", () => d.open ? open.add(c.id) : open.delete(c.id));
+        c.steps.length ? c.steps.map((s, i) => h("button", { className: "step" + (s.done ? " done" : s.doing ? " doing" : ""), type: "button", onclick: () => toggle(c, i) },
+          h("span", { className: "box" }), h("span", { className: "txt" }, s.text, s.doing ? h("span", { className: "tag", textContent: "In progress" }) : null))) : h("p", { className: "empty", textContent: "No steps." })));
+    d.addEventListener("toggle", () => d.open ? closed.delete(c.id) : closed.add(c.id));
     return d;
   }));
 }
@@ -98,7 +100,7 @@ function linkChip(c) {
   return a;
 }
 function toggle(c, i) {
-  const steps = c.steps.map((s, j) => j === i ? { ...s, done: !s.done } : s);
+  const steps = c.steps.map((s, j) => j === i ? { ...s, done: !s.done, doing: false } : s);
   queue(c.id, () => db.collection("tasks").doc(c.id).update({ steps, updatedAt: Date.now() }));
 }
 
