@@ -1,0 +1,260 @@
+#!/usr/bin/env python3
+"""Import map of one jj change: which changed files must land together or in order when you split it."""
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
+
+JS_EXT = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")
+JS_RESOLVE = ("", *JS_EXT, ".json", "/index.ts", "/index.tsx", "/index.js")
+JS_IMPORT = re.compile(r"""(?:\bfrom|\bimport|\brequire\(|\bimport\(|\bmock\()\s*["']([^"']+)["']""")
+PY_FROM = re.compile(r"^\s*from\s+(\.*[\w.]*)\s+import\s+\(?([\w\s,*]+)", re.M)
+PY_IMPORT = re.compile(r"^\s*import\s+([\w.]+(?:\s*,\s*[\w.]+)*)", re.M)
+
+
+def jj(root, *args):
+    return subprocess.run(["jj", *args], cwd=root, capture_output=True, text=True)
+
+
+def parse_summary(text):
+    changes = {}
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        status, path = line.split(" ", 1)
+        if status in ("R", "C"):
+            m = re.match(r"^(.*)\{(.*) => (.*)\}(.*)$", path)
+            old, new = (
+                [os.path.normpath(m[1] + side + m[4]) for side in (m[2], m[3])]
+                if m
+                else path.split(" => ")
+            )
+            if status == "R":
+                changes[old] = "D"
+            changes[new] = "A"
+        else:
+            changes[path] = status
+    return changes
+
+
+def suffix_index(paths):
+    index = defaultdict(set)
+    for path in paths:
+        parts = path.split("/")
+        for i in range(len(parts)):
+            index["/".join(parts[i:])].add(path)
+    return index
+
+
+def unique(index, keys):
+    for key in keys:
+        hits = index.get(key, set())
+        if len(hits) == 1:
+            return next(iter(hits))
+    return None
+
+
+def js_targets(path, text, changes, index):
+    for spec in JS_IMPORT.findall(text):
+        if spec.startswith("."):
+            base = os.path.normpath(os.path.join(os.path.dirname(path), spec))
+            hit = next((base + ext for ext in JS_RESOLVE if base + ext in changes), None)
+        else:
+            # ponytail: aliases (~/, @/, src/) resolve by unique path suffix, read tsconfig paths if this mismatches
+            cands = [c for c in (spec, spec.split("/", 1)[-1]) if "/" in c]
+            hit = unique(index, [c + ext for c in cands for ext in JS_RESOLVE])
+        if hit:
+            yield hit
+
+
+def py_targets(path, text, changes, index):
+    mods = []
+    for mod, names in PY_FROM.findall(text):
+        dots = len(mod) - len(mod.lstrip("."))
+        rest = mod[dots:]
+        subs = [n.split(" as ")[0].strip() for n in names.split(",") if n.strip() not in ("", "*")]
+        bases = [rest] + [f"{rest}.{n}" if rest else n for n in subs]
+        if dots:
+            here = os.path.dirname(path)
+            for _ in range(dots - 1):
+                here = os.path.dirname(here)
+            for b in bases:
+                p = os.path.normpath(os.path.join(here, b.replace(".", "/")))
+                hit = next((p + e for e in (".py", "/__init__.py") if p + e in changes), None)
+                if hit:
+                    yield hit
+        else:
+            mods += bases
+    for group in PY_IMPORT.findall(text):
+        mods += [m.strip() for m in group.split(",")]
+    for mod in mods:
+        p = mod.replace(".", "/")
+        hit = unique(index, [p + ".py", p + "/__init__.py"])
+        if hit:
+            yield hit
+
+
+def deps_of(path, text, changes, index):
+    if path.endswith(JS_EXT):
+        found = js_targets(path, text, changes, index)
+    elif path.endswith(".py"):
+        found = py_targets(path, text, changes, index)
+    else:
+        return []
+    return sorted({d for d in found if d != path})
+
+
+def build(root, rev, base=None):
+    base = base or f"{rev}-"
+    changes = parse_summary(jj(root, "diff", "--summary", "--from", base, "--to", rev).stdout)
+    index = suffix_index(changes)
+    jobs = [
+        (side, path, r)
+        for path, status in changes.items()
+        for side, r, keep in (("new", rev, status != "D"), ("old", base, status != "A"))
+        if keep and path.endswith((*JS_EXT, ".py"))
+    ]
+
+    def run(job):
+        side, path, r = job
+        text = jj(root, "file", "show", "-r", r, "--", f'root-file:"{path}"').stdout
+        return side, path, deps_of(path, text, changes, index)
+
+    graph = {"changes": changes, "new": {}, "old": {}}
+    with ThreadPoolExecutor(8) as pool:
+        for side, path, deps in pool.map(run, jobs):
+            graph[side][path] = deps
+    return graph
+
+
+def constraints(graph):
+    """Edges (a, b, why): a must land in the same commit as b or an earlier one."""
+    ch = graph["changes"]
+    hard, soft = [], []
+    for f, deps in graph["new"].items():
+        for g in deps:
+            (hard if ch[g] == "A" else soft).append((g, f, "imports"))
+    for f, deps in graph["old"].items():
+        for g in deps:
+            if ch[g] == "D":
+                hard.append((f, g, "deletes-import"))
+            elif ch[f] != "D":
+                soft.append((f, g, "old-imports"))
+    return hard, soft
+
+
+def sccs(nodes, edges):
+    adj = defaultdict(list)
+    for a, b, _ in edges:
+        adj[a].append(b)
+    index, low, stack, on, out, n = {}, {}, [], set(), [], [0]
+    sys.setrecursionlimit(max(10000, 4 * len(nodes)))
+
+    def visit(v):
+        index[v] = low[v] = n[0]
+        n[0] += 1
+        stack.append(v)
+        on.add(v)
+        for w in adj[v]:
+            if w not in index:
+                visit(w)
+                low[v] = min(low[v], low[w])
+            elif w in on:
+                low[v] = min(low[v], index[w])
+        if low[v] == index[v]:
+            comp = []
+            while True:
+                w = stack.pop()
+                on.discard(w)
+                comp.append(w)
+                if w == v:
+                    break
+            out.append(sorted(comp))
+
+    for v in sorted(nodes):
+        if v not in index:
+            visit(v)
+    return [c for c in out if len(c) > 1]
+
+
+def check_plan(plan, graph, hard, soft):
+    ch = graph["changes"]
+    where, problems = {}, []
+    for i, commit in enumerate(plan):
+        for f in commit["files"] if isinstance(commit, dict) else commit:
+            if f in where:
+                problems.append(f"duplicate: {f}")
+            where[f] = i
+    problems += [f"unassigned: {f}" for f in ch if f not in where]
+    problems += [f"not in change: {f}" for f in where if f not in ch]
+    for label, edges in (("HARD", hard), ("soft", soft)):
+        for a, b, why in edges:
+            if a in where and b in where and where[a] > where[b]:
+                problems.append(f"{label} {why}: {a} (commit {where[a] + 1}) must not land after {b} (commit {where[b] + 1})")
+    return problems
+
+
+def report(graph, strict):
+    hard, soft = constraints(graph)
+    ch = graph["changes"]
+    print(f"{len(ch)} files: " + ", ".join(f"{sum(s == k for s in ch.values())} {k}" for k in "AMD"))
+    print("\n== HARD: left file must land with or before right file")
+    for a, b, why in sorted(hard):
+        print(f"  {ch[a]} {a}  ->  {ch[b]} {b}  [{why}]")
+    print("\n== soft (API may have changed; confirm with a type-check)")
+    for a, b, why in sorted(soft):
+        print(f"  {ch[a]} {a}  ->  {ch[b]} {b}  [{why}]")
+    groups = sccs(ch, hard + soft if strict else hard)
+    print(f"\n== must share one commit ({'hard + soft' if strict else 'hard'} edges)")
+    for g in groups:
+        print("  - " + "\n    ".join(g))
+    if not groups:
+        print("  (none)")
+
+
+def selftest():
+    changes = {"a/x.ts": "M", "a/y.ts": "A", "src/m/z.tsx": "D", "pkg/mod.py": "M", "pkg/sub/__init__.py": "A"}
+    idx = suffix_index(changes)
+    assert deps_of("a/x.ts", 'import y from "./y";\nimport z from "~/m/z";\nimport r from "react";', changes, idx) == ["a/y.ts", "src/m/z.tsx"]
+    assert deps_of("pkg/mod.py", "from .sub import thing\nimport os", changes, idx) == ["pkg/sub/__init__.py"]
+    assert deps_of("a/x.ts", 'import p from "pkg/mod"', changes, idx) == []
+    assert parse_summary("R src/{a.ts => b.ts}\nM c.py") == {"src/a.ts": "D", "src/b.ts": "A", "c.py": "M"}
+    graph = {"changes": changes, "new": {"a/x.ts": ["a/y.ts"], "a/y.ts": ["a/x.ts"]}, "old": {"a/x.ts": ["src/m/z.tsx"]}}
+    hard, soft = constraints(graph)
+    assert ("a/y.ts", "a/x.ts", "imports") in hard and ("a/x.ts", "src/m/z.tsx", "deletes-import") in hard
+    assert sccs(changes, hard + soft) == [["a/x.ts", "a/y.ts"]]
+    assert check_plan([["a/x.ts"], ["a/y.ts", "src/m/z.tsx", "pkg/mod.py", "pkg/sub/__init__.py"]], graph, hard, soft)
+    print("selftest ok")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("-r", "--rev", default="@", help="jj revision to map (default @)")
+    ap.add_argument("--from", dest="base", help="map the range FROM..REV instead of one change (default REV-)")
+    ap.add_argument("--strict", action="store_true", help="also use soft edges to find files that must share a commit")
+    ap.add_argument("--json", metavar="OUT", help="write the raw graph {changes, new, old} to OUT")
+    ap.add_argument("--plan", metavar="PLAN", help='check a split plan: JSON list of commits, each a list of paths or {"files": [...]}')
+    ap.add_argument("--selftest", action="store_true")
+    args = ap.parse_args()
+    if args.selftest:
+        return selftest()
+    root = jj(".", "root").stdout.strip() or sys.exit("not in a jj repo")
+    graph = build(root, args.rev, args.base)
+    if args.json:
+        with open(args.json, "w") as f:
+            json.dump(graph, f, indent=1)
+    if args.plan:
+        with open(args.plan) as f:
+            problems = check_plan(json.load(f), graph, *constraints(graph))
+        print("\n".join(problems) or "plan respects every import edge")
+        sys.exit(any(not p.startswith("soft") for p in problems))
+    report(graph, args.strict)
+
+
+if __name__ == "__main__":
+    main()
