@@ -56,7 +56,6 @@ grep -rq 'PI_CODING_AGENT_DIR:-$HOME/.pi/agent' "$pi_home/skills/daniel/SKILL.md
 grep -q "^skills: no-comments$" "$pi_home/agents/impl.md" || fail "skills not preserved"
 ! grep -q "^tools:" "$pi_home/agents/impl.md" || fail "impl should inherit Pi's default tools"
 [[ -x "$pi_home/skills/daniel/new-workspace.sh" ]] || fail "skill script lost executable bit"
-[[ -x "$pi_home/skills/daniel/typecheck.py" ]] || fail "typecheck.py lost executable bit"
 grep -q "You implement code changes" "$pi_home/agents/impl.md" || fail "agent body lost"
 echo "ok: pi present renders skills and agents"
 

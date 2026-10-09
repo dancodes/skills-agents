@@ -39,17 +39,11 @@ RULES = [
      "of files."),
     (r"\byarn\s+vitest\b",
      "yarn vitest is forbidden. Run the repository scripts instead: yarn test, "
-     "or VITEST_MAX_WORKERS=1 yarn test:integration --run <one test file> for "
+     "or VITEST_MAX_WORKERS=32 yarn test:integration --run <test files> for "
      "integration tests."),
     (r"\bnpx\b",
      "npx is forbidden. Use executables already present in the working "
      "directory (yarn scripts, ./node_modules/.bin) instead."),
-    (r"\byarn\s+typecheck\b|\b(?:tsgo|tsc)\b",
-     "Running the typechecker directly is forbidden. The default four checkers "
-     "are slower and take twice the memory of one on this 2-core machine. Run\n\n"
-     "    python3 \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/typecheck.py\"\n\n"
-     "from the directory you would have typechecked in. It takes the same "
-     "arguments and runs yarn typecheck with one checker."),
     (r"\bjj\s+new\b(?![^;&|]*--no-edit\b)",
      "jj new without --no-edit moves the working copy of whichever workspace it "
      "runs in, and workspaces here belong to other agents. To make room for a "
@@ -107,31 +101,6 @@ UPDATE_STALE_MESSAGE = (
 )
 
 
-INTEGRATION_SUITE = re.compile(r"\byarn\s+test:integration\b")
-INTEGRATION_TEST_FILE = re.compile(r"\S+\.test\.[jt]sx?\b")
-INTEGRATION_WORKERS_MESSAGE = (
-    "yarn test:integration must run as\n\n"
-    "    VITEST_MAX_WORKERS=1 yarn test:integration --run <one test file>\n\n"
-    "from a /daniel workspace. The repository config sets maxWorkers: 2, which "
-    "is right for one suite on this 2-core machine but takes it to ~130% CPU; "
-    "several workspaces running that at once starve each other and the runs "
-    "time out."
-)
-INTEGRATION_SCOPE_MESSAGE = (
-    "yarn test:integration must name exactly one test file:\n\n"
-    "    VITEST_MAX_WORKERS=1 yarn test:integration --run <one test file>\n\n"
-    "A folder, a glob, or the bare suite runs for the best part of an hour and "
-    "tells you nothing about the test you are writing. Run only the file you "
-    "are working on; CI runs the rest and catches the regressions."
-)
-INTEGRATION_LOOP = re.compile(r"\b(?:for|while|xargs)\b")
-INTEGRATION_SEQUENTIAL_MESSAGE = (
-    "One integration test file per command. Walking a folder file by file is "
-    "the whole folder with extra startup cost, and the feedback loop is what "
-    "matters here: run the file you are working on, and leave the rest to CI."
-)
-
-
 WORKSPACE_WRITE = re.compile(
     r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|backout|commit|new"
     r"|bookmark\s+(?:move|set|delete|forget|track|untrack)"
@@ -158,15 +127,6 @@ def denial(command, cwd=""):
         return UPDATE_STALE_MESSAGE
     if EDIT.search(command) and in_daniel_workspace(command, cwd):
         return EDIT_MESSAGE
-    if INTEGRATION_SUITE.search(command) and in_daniel_workspace(command, cwd):
-        if "VITEST_MAX_WORKERS" not in command:
-            return INTEGRATION_WORKERS_MESSAGE
-        if (len(INTEGRATION_SUITE.findall(command)) > 1
-                or INTEGRATION_LOOP.search(command)):
-            return INTEGRATION_SEQUENTIAL_MESSAGE
-        args = command[INTEGRATION_SUITE.search(command).end():]
-        if len(INTEGRATION_TEST_FILE.findall(args)) != 1 or "*" in args:
-            return INTEGRATION_SCOPE_MESSAGE
     if SQUASH_WITHOUT_MESSAGE.search(command):
         if in_daniel_workspace(command, cwd) and WORKSPACE_WRITE.search(command):
             return WORKSPACE_WRITE_MESSAGE
@@ -205,12 +165,12 @@ def test():
     # jj edit resolves conflicts from the integration workspace, and only there.
     assert denial("jj edit xyz", "/x/daniel-workspaces/feat") == EDIT_MESSAGE
     assert denial("jj edit xyz", "/x/repo") is None
-    assert denial("jj new") == RULES[8][1]
-    assert denial("jj new -m 'x' --insert-before @") == RULES[8][1]
+    assert denial("jj new") == RULES[7][1]
+    assert denial("jj new -m 'x' --insert-before @") == RULES[7][1]
     assert denial("jj new --no-edit --insert-before @ -m 'feat: x'") is None
-    assert denial("jj abandon xyz") == RULES[9][1]
-    assert denial("jj restore src/a.ts") == RULES[9][1]
-    assert denial("git stash") == RULES[10][1]
+    assert denial("jj abandon xyz") == RULES[8][1]
+    assert denial("jj restore src/a.ts") == RULES[8][1]
+    assert denial("git stash") == RULES[9][1]
     assert denial("jj squash --into abc a.ts",
                   "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
     assert denial("jj bookmark delete handoff/feat",
@@ -242,38 +202,14 @@ def test():
     assert denial("jj squash --into abc --use-destination-message a.ts") is None
     assert denial("jj squash --into abc -m 'message' a.ts") is None
     assert denial("yarn vitest run foo") == RULES[5][1]
-    assert denial("yarn test:integration",
-                  "/x/daniel-workspaces/feat") == INTEGRATION_WORKERS_MESSAGE
-    assert denial("yarn test:integration --run src/a.test.tsx",
-                  "/x/daniel-workspaces/feat") == INTEGRATION_WORKERS_MESSAGE
-    assert denial("VITEST_MAX_WORKERS=1 yarn test:integration --run src/a.test.tsx",
-                  "/x/daniel-workspaces/feat") is None
     ws = "/x/daniel-workspaces/feat"
-    assert denial("VITEST_MAX_WORKERS=1 yarn test:integration --run "
-                  "src/test/integration/modules/foo", ws) == INTEGRATION_SCOPE_MESSAGE
-    assert denial("VITEST_MAX_WORKERS=1 yarn test:integration --run "
-                  "src/test/integration/modules/foo/*.test.tsx",
-                  ws) == INTEGRATION_SCOPE_MESSAGE
-    assert denial("VITEST_MAX_WORKERS=1 yarn test:integration --run a.test.tsx "
-                  "b.test.tsx", ws) == INTEGRATION_SCOPE_MESSAGE
-    assert denial("for f in src/test/integration/modules/foo/*.test.tsx; do "
-                  "VITEST_MAX_WORKERS=1 yarn test:integration --run $f; done",
-                  ws) == INTEGRATION_SEQUENTIAL_MESSAGE
-    assert denial("VITEST_MAX_WORKERS=1 yarn test:integration --run a.test.tsx && "
-                  "VITEST_MAX_WORKERS=1 yarn test:integration --run b.test.tsx",
-                  ws) == INTEGRATION_SEQUENTIAL_MESSAGE
-    assert denial("yarn test:integration", "/x/repo") is None
-    assert denial("yarn test --run src/a.test.ts",
-                  "/x/daniel-workspaces/feat") is None
+    assert denial("yarn test:integration", ws) is None
+    assert denial("VITEST_MAX_WORKERS=32 yarn test:integration --run "
+                  "src/test/integration/modules/foo", ws) is None
+    assert denial("yarn test --run src/a.test.ts", ws) is None
     assert denial("npx eslint .") == RULES[6][1]
-    assert denial("yarn typecheck") == RULES[7][1]
-    assert denial("yarn typecheck --watch") == RULES[7][1]
-    assert denial("cd ../ws && yarn typecheck") == RULES[7][1]
-    assert denial("./node_modules/.bin/tsgo --noEmit") == RULES[7][1]
-    assert denial("yarn tsc -p .") == RULES[7][1]
-    assert denial('python3 "$HOME/.claude/skills/daniel/typecheck.py"') is None
-    assert denial(
-        "python3 ~/.claude/skills/daniel/typecheck.py --checkers 2") is None
+    assert denial("yarn typecheck", ws) is None
+    assert denial("./node_modules/.bin/tsgo --noEmit", ws) is None
     assert denial("cat tsconfig.json") is None
     # The regression these rules used to hit: substitution is not a match.
     assert denial("jj workspace add $(pwd)/../daniel-workspaces/feature") is None

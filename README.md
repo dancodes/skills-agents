@@ -45,10 +45,8 @@ same tool allowlists declared in the canonical agents, mapped to Pi's names.
 | park | `/daniel` via `park-workspace.sh` | `jj describe` + `jj bookmark create handoff/<name>` on the tip of the workspace's stack, then forgets the workspace and deletes its directory |
 | integrate | `/daniel-integrate` → `jj` agent | runs one preflight report, acquires lock, squashes each commit a `handoff/*` carries into the feature line oldest first, verifies each batch, deletes bookmark, releases lock |
 
-Agents typecheck through `skills/daniel/typecheck.py`, which runs
-`yarn typecheck --checkers 1`; a hook blocks `yarn typecheck`, `tsgo` and `tsc`
-run directly. `new-workspace.sh` seeds each workspace with the incremental
-cache, so a workspace's first typecheck is warm rather than cold.
+`new-workspace.sh` seeds each workspace with the incremental typecheck cache,
+so a workspace's first `yarn typecheck` is warm rather than cold.
 
 Implementation and integration are separate invocations. `/daniel` leaves the
 work parked and stops. `/daniel-integrate` is the only writer to the feature

@@ -26,12 +26,12 @@ Daniel may watch you work live. Before each step, write one short sentence that 
 Use only these forms. Hooks block the others, so do not try them.
 
 - Unit test: `yarn test --run <file>`
-- Integration test: `VITEST_MAX_WORKERS=1 yarn test:integration --run <one test file>`
-- Typecheck: `python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/typecheck.py"`, from your workspace directory
+- Integration test: `VITEST_MAX_WORKERS=32 yarn test:integration --run <test files or folders>`
+- Typecheck: `yarn typecheck`, from your workspace directory
 - Any other tool: `yarn <script>` or `./node_modules/.bin/<tool>`
 - jj reads: `jj status`, `jj log`, `jj file show`, `jj diff --git` (or `--summary`, `--stat`, `--name-only`)
 
-Blocked: `npx`, `yarn vitest`, `yarn typecheck`, `tsc`, `tsgo`, an integration run on a folder, a glob, a loop or more than one file, and every jj or git write.
+Blocked: `npx`, `yarn vitest`, and every jj or git write.
 
 ## Rules
 
@@ -40,8 +40,6 @@ Blocked: `npx`, `yarn vitest`, `yarn typecheck`, `tsc`, `tsgo`, an integration r
 - Write tests if that is what the repository does. For a bug fix, write the failing integration test first, run it, and show it fail before you change the code.
 - Never change a harness default, a toggle or a fake endpoint to make a test pass. When the app is wrong and the fix is out of scope, mark the case `knownBroken`.
 - Do not delete a guard, a comment that explains a reason, or a dependency because the tests still pass. Find what it protects first, and list each one you remove under "Removed safeguards" in your report.
-- Run integration tests one file at a time: `VITEST_MAX_WORKERS=1 yarn test:integration --run <the one test file you are working on>`. Never a folder, never a glob, never the bare suite, and never a folder walked file by file in a loop or a chain: that is the whole folder with extra startup cost. A full `yarn test:integration` is over an hour, and a fast loop on the file you are writing is the point; CI runs the rest and catches regressions elsewhere. The config sets `maxWorkers: 2`, which is right for one suite on this 2-core machine but pushes it to ~130% CPU; several workspaces running that at once starve each other. A hook enforces all of this.
-- Typecheck only through `python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/typecheck.py"`, run from your workspace directory. It takes the same arguments as `yarn typecheck` and runs it with one checker, which on this 2-core machine is faster than the default four and takes half the memory. A hook blocks `yarn typecheck`, `tsgo` and `tsc` run directly.
 - Do not run write git or jj commands. `jj workspace update-stale` counts as one, and is the worst of them: it rewrites the files on disk to match a commit, discarding every edit you have not snapshotted yet. A hook blocks it. Your work must live in the working copy only. You may read from the repository using jj commands (jj log, jj diff, jj file show). Every `jj diff` you run must pass `--git`; only `--summary`, `--stat`, or `--name-only` may replace it, and only when you need nothing but the file list. A hook blocks the other forms.
 - When Daniel approves a round but wants the work to go on, the orchestrator commits that round for you and the workspace lands on a fresh empty working-copy commit. Nothing on disk changes and you keep the file context: carry on editing, and your next round snapshots into that new commit as a follow-up. Do not commit it yourself.
 - You never commit, squash, or bookmark anything. When Daniel approves your report the orchestrator parks the work: it describes your working-copy commit and marks it with a `handoff/<workspace-name>` bookmark, and `/daniel-integrate` lands it later. A hook blocks the mutating commands from this workspace, because several agents rewriting the same commits at once is how work has been lost here.
