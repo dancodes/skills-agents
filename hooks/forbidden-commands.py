@@ -101,6 +101,12 @@ UPDATE_STALE_MESSAGE = (
 )
 
 
+BACKGROUND_MESSAGE = (
+    "Background shells are forbidden. Run the command in the foreground, "
+    "without run_in_background. For a long run, pass timeout: 600000."
+)
+
+
 WORKSPACE_WRITE = re.compile(
     r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|backout|commit|new"
     r"|bookmark\s+(?:move|set|delete|forget|track|untrack)"
@@ -122,7 +128,9 @@ def in_daniel_workspace(command, cwd):
     return "daniel-workspaces" in command + cwd
 
 
-def denial(command, cwd=""):
+def denial(command, cwd="", background=False):
+    if background:
+        return BACKGROUND_MESSAGE
     if UPDATE_STALE.search(command) and in_daniel_workspace(command, cwd):
         return UPDATE_STALE_MESSAGE
     if EDIT.search(command) and in_daniel_workspace(command, cwd):
@@ -144,9 +152,11 @@ def main():
         event = json.load(sys.stdin)
     except ValueError:
         return 0
+    tool_input = event.get("tool_input") or {}
     message = denial(
-        (event.get("tool_input") or {}).get("command", ""),
+        tool_input.get("command", ""),
         event.get("cwd", ""),
+        tool_input.get("run_in_background", False),
     )
     if not message:
         return 0
@@ -216,6 +226,8 @@ def test():
     assert denial("ws=$(pwd)/x; for f in $ws/*; do echo $f; done") is None
     assert denial("yarn test:integration") is None
     assert denial("jj op log") is None
+    assert denial("yarn test:integration", ws, background=True) == BACKGROUND_MESSAGE
+    assert denial("ls", background=True) == BACKGROUND_MESSAGE
     assert denial("jj squash --into xykttnxu -u src/a.ts") is None
     print("ok")
 

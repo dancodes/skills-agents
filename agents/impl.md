@@ -31,7 +31,7 @@ Use only these forms. Hooks block the others, so do not try them.
 - Any other tool: `yarn <script>` or `./node_modules/.bin/<tool>`
 - jj reads: `jj status`, `jj log`, `jj file show`, `jj diff --git` (or `--summary`, `--stat`, `--name-only`)
 
-Blocked: `npx`, `yarn vitest`, and every jj or git write.
+Blocked: `npx`, `yarn vitest`, background shells (`run_in_background`), and every jj or git write.
 
 ## Rules
 
