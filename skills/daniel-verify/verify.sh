@@ -122,7 +122,7 @@ ensure_chrome() {
   [[ -x $home/chrome-bin ]] || die "$home/chrome-bin is missing. See the skills-agents README."
   DISPLAY=$display XAUTHORITY=$home/Xauthority setsid "$home/chrome-bin" \
     --remote-debugging-port="$cdp_port" --remote-debugging-address=127.0.0.1 \
-    --user-data-dir="$home/chrome-profile" --no-first-run --no-default-browser-check \
+    --user-data-dir="$home/chrome-profile" --no-first-run --no-default-browser-check --disable-popup-blocking \
     --window-position=0,0 --window-size=1920,1080 about:blank \
     </dev/null >"$home/chrome.log" 2>&1 9>&- &
   for _ in $(seq 50); do listening "$cdp_port" && return; sleep 0.2; done
