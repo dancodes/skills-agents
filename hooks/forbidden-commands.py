@@ -116,7 +116,7 @@ BACKGROUND_MESSAGE = (
 WORKSPACE_WRITE = re.compile(
     r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|backout|commit|new"
     r"|bookmark\s+(?:move|set|delete|forget|track|untrack)"
-    r"|workspace\s+forget|git\s+(?:push|fetch))\b"
+    r"|git\s+(?:push|fetch))\b"
 )
 WORKSPACE_WRITE_MESSAGE = (
     "This command rewrites shared repository state from inside a /daniel "
@@ -201,6 +201,7 @@ def test():
     assert denial("jj bookmark create handoff/feat -r @",
                   "/x/daniel-workspaces/feat") is None
     assert denial("jj status", "/x/daniel-workspaces/feat") is None
+    assert denial("jj workspace forget feat", "/x/daniel-workspaces/feat") is None
     # Integration runs from the integration workspace, so the same squash passes.
     assert denial("jj squash --from handoff/feat --into abc -u a.ts", "/x/repo") is None
     assert denial("jj undo") == RULES[1][1]
