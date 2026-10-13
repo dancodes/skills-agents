@@ -127,6 +127,16 @@ workspace going stale or being forgotten.
 `continue` commits inside the impl workspace, which is not the feature line and
 is nobody else's to read. It rewrites nothing shared, so it needs no lock.
 
+## Leftover workspaces
+
+A failed or abandoned run can leave a workspace behind. Remove the ones that
+hold no unparked work with:
+```
+"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/cleanup-workspace.sh" [<workspace-name>...]
+```
+With no names it checks every workspace under `daniel-workspaces`. It skips a
+stale workspace and any with a commit that no bookmark keeps, and says why.
+
 ## When the impl agent reports the working copy is stale
 
 Expected: the repository moved under that workspace. It is not a failure and

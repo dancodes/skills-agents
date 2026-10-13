@@ -59,6 +59,7 @@ to the marketplace's `plugins`, then run `./install.sh`.
 | commit a round | `/daniel` via `commit-workspace.sh` | on `continue`: `jj describe` + `jj new`, so the next round is a follow-up commit; workspace and `impl` agent stay alive |
 | park | `/daniel` via `park-workspace.sh` | `jj describe` + `jj bookmark create handoff/<name>` on the tip of the workspace's stack, then forgets the workspace and deletes its directory |
 | integrate | `/daniel-integrate` → `jj` agent | runs one preflight report, acquires lock, squashes each commit a `handoff/*` carries into the feature line oldest first, verifies each batch, deletes bookmark, releases lock |
+| clean up | anyone via `cleanup-workspace.sh [name...]` | forgets and deletes leftover workspaces under `daniel-workspaces` that hold no unparked work; skips stale ones |
 
 `new-workspace.sh` runs the repo profile's `setup-workspace.sh`, which can
 link dependencies, generated files and warm caches into the new workspace.
