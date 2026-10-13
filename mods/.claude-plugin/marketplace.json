@@ -3,6 +3,7 @@
   "owner": { "name": "Daniel Sorichetti" },
   "plugins": [
     { "name": "usage-footer", "source": "./usage-footer" },
-    { "name": "guards", "source": "./guards" }
+    { "name": "guards", "source": "./guards" },
+    { "name": "tool-timer", "source": "./tool-timer" }
   ]
 }

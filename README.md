@@ -47,6 +47,7 @@ mod's tests with `claude plugin test mods/<name>`.
 |---|---|
 | `usage-footer` | 5h and weekly usage, with time to reset, in the prompt footer |
 | `guards` | global hooks: `forbidden-commands.py --global` (also bans Monitor and `sleep`), `push-guard.py`, `conflict-tripwire.py`, `question-turn.py` |
+| `tool-timer` | shows `took 12.4s` under a tool call's row when it ran past `thresholdSeconds` (default 5) |
 
 To add a mod, create `mods/<name>/` and add `{ "name": "<name>", "source": "./<name>" }`
 to the marketplace's `plugins`, then run `./install.sh`.
