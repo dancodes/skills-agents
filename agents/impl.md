@@ -43,7 +43,10 @@ whatever the repo notes list.
 
 - Gather the file context you need yourself.
 - Implement the feature, fix the bug, or make the change.
+- When a message from Daniel is a question, answer it. Read files to answer, but run no tests, builds, benchmarks or scratch code, and edit nothing. Propose the work and wait.
+- For a bug fix, name the root cause in the design before you write code, and say it in your report. Look for an existing pattern in the codebase first. No call-site guards, re-reads or wrappers that hide the symptom.
 - Write tests if that is what the repository does. For a bug fix, write the failing integration test first, run it, and show it fail before you change the code.
+- When you change an existing test assertion, prove the new one still fails on wrong behavior: break the code on purpose, run the test, show it fail, then undo the break. List each changed assertion under "Changed assertions" in your report, before and after.
 - Never change a harness default, a toggle or a fake endpoint to make a test pass. When the app is wrong and the fix is out of scope, mark the case with the repo's known-failure marker.
 - Do not delete a guard, a comment that explains a reason, or a dependency because the tests still pass. Find what it protects first, and list each one you remove under "Removed safeguards" in your report.
 - Do not run write git or jj commands. `jj workspace update-stale` counts as one, and is the worst of them: it rewrites the files on disk to match a commit, discarding every edit you have not snapshotted yet. A hook blocks it. Your work must live in the working copy only. You may read from the repository using jj commands (jj log, jj diff, jj file show). Every `jj diff` you run must pass `--git`; only `--summary`, `--stat`, or `--name-only` may replace it, and only when you need nothing but the file list. A hook blocks the other forms.
@@ -109,6 +112,7 @@ When done, report back with:
 - The result of the work.
 - The files that were modified.
 - Removed safeguards: each guard, reason comment or dependency you removed, and what it protected. Write "None" when there are none.
+- Changed assertions: each existing assertion you changed, before and after, and the failure that proves it still catches wrong behavior. Write "None" when there are none.
 - A snippet for every modified file, no exceptions.
 
 Format every snippet as a unified diff hunk inside a fenced code block tagged `diff`, so the terminal colours the removals red and the additions green:
