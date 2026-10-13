@@ -64,7 +64,7 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    If it fails, relay the error verbatim and wait. Otherwise spawn a
    `general-purpose` agent to run steps 2–5 of the `daniel-verify` skill's
    Setup for that workspace, port and template, and to return the target URL.
-3. Spawn the `impl` agent, handing it the workspace directory and the full request. With browser verify on, also hand it the port and the target URL, and tell it to check its change with the `daniel-verify` skill. Relay its report (result, modified files, removed safeguards, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. Never trim or summarise the hunks, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them.
+3. Spawn the `impl` agent, handing it the workspace directory and the full request. With browser verify on, also hand it the port and the target URL, and tell it to check its change with the `daniel-verify` skill. Relay its report (result, modified files, removed safeguards, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. End the relay with one line: `approve` parks, `continue` commits the round, `ship` parks, tickets and pushes. Never trim or summarise the hunks, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them.
 4. If Daniel does not approve: send the feedback to the same running `impl` agent via SendMessage. It already has the file context. Spawn a fresh `impl` agent only if the previous one is dead or Daniel asks for a clean take.
 5. If Daniel says **continue**: he approves this round but the run goes on.
    Commit the round and keep the workspace and the `impl` agent alive.
@@ -107,6 +107,13 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    committed with. Relay the script's output verbatim: the bookmark, every
    commit it carries with its change ID and file list, and any scaffolding line
    it printed.
+
+   If Daniel replies **ship**: park as above, then invoke the `ticket` skill
+   with the parked tip's change ID. It creates the ticket, pushes the branch
+   and prints the merge request link. When the work landed with `--onto`, do
+   not ticket it: push the bookmark that moved with `jj git push -b <bookmark>`
+   and relay the merge request link from the output. Then stop, without step
+   7's offer.
 7. Stop. Nothing else happens in this run. Do not spawn the `jj` agent and do
    not squash. The park script itself forgets the workspace and deletes its
    directory: the `handoff/<workspace-name>` bookmark carries everything
