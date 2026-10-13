@@ -44,7 +44,10 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    The working copy then starts as `jj new <revision>`. Remember the revision:
    step 6 needs it.
 
-   If the request names no bookmark or revision, ask Daniel for the base in one
+   If the request names none, use the base named earlier in this conversation:
+   a previous `/daniel` run's base, or a bookmark, change ID or commit Daniel
+   said to work on. Say which one you took in one line. If the conversation
+   names none either, ask Daniel for the base in one
    line before you create the workspace. A ticket ID alone is not a revision.
    Run it with the feature name alone only when he says to use the current
    branch tip. Never pick a base yourself.
