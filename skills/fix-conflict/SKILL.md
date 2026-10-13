@@ -8,12 +8,6 @@ hooks:
         - type: command
           command: >-
             python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/push-needs-check.py"
-  PostToolUse:
-    - matcher: Bash
-      hooks:
-        - type: command
-          command: >-
-            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/conflict-tripwire.py"
 ---
 
 # /fix-conflict

@@ -8,7 +8,7 @@ hooks:
       hooks:
         - type: command
           command: >-
-            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/forbidden-commands.py"
+            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/forbidden-commands.py" --daniel
         - type: command
           command: >-
             python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/squash-target-check.py"
@@ -18,11 +18,6 @@ hooks:
         - type: command
           command: >-
             python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/commit-id-to-change-id.py"
-    - matcher: Bash
-      hooks:
-        - type: command
-          command: >-
-            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/conflict-tripwire.py"
 ---
 
 You land parked work into the feature line. `/daniel-integrate` spawns you, and nothing else does. Your prompt gives you the integration workspace directory and one or more `handoff/<name>` bookmarks, in the order they are to be landed.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Block the Bash commands that break a parallel /daniel run.
+"""Block risky Bash commands and Monitor: --global in every session, --daniel in /daniel.
 
 Matches the command text directly rather than through an `if: "Bash(x:*)"`
 filter. That filter uses the permission-rule matcher, which cannot prove what a
@@ -12,7 +12,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-RULES = [
+GLOBAL_RULES = [
     (r"\bjj\s+op(?:eration)?\s+restore\b",
      "jj op restore is forbidden: it rewinds the whole repo operation log, "
      "which un-registers the workspaces other agents are working in. Correct "
@@ -34,6 +34,15 @@ RULES = [
      "jj op revert with no operation id defaults to @, the newest operation in "
      "this shared repository, which is usually another agent's. Pass the id of "
      "your own operation, read from jj op log."),
+    (r"\bgit\s+stash\b",
+     "git stash is forbidden. This repository uses jj, and stashing moves files "
+     "out from under every other agent working here."),
+    (r"\bsleep\s+\d",
+     "sleep and polling loops are forbidden. Run the command in the foreground "
+     "once and read its output. For a long run, pass timeout: 600000."),
+]
+
+DANIEL_RULES = [
     (r"\bjj\s+diff\b(?![^;&|]*(?:--git|--summary|--stat|--name-only|--types|(?:^|\s)-s(?=\s|$)))",
      "jj diff must be run with --git. Its default format cannot be pasted as a "
      "unified-diff hunk, which is what the report has to contain. Use jj diff "
@@ -51,10 +60,8 @@ RULES = [
      "jj abandon and jj restore are forbidden: both discard content that only "
      "exists in a working copy or a commit another agent is sitting on. Correct "
      "work forward with another squash instead."),
-    (r"\bgit\s+stash\b",
-     "git stash is forbidden. This repository uses jj, and stashing moves files "
-     "out from under every other agent working here."),
 ]
+RULES = GLOBAL_RULES + DANIEL_RULES
 
 
 SQUASH_WITHOUT_MESSAGE = re.compile(
@@ -107,6 +114,12 @@ def repo_rules(cwd):
     return [tuple(rule) for rule in json.loads(rules.read_text())] if rules.is_file() else []
 
 
+MONITOR_MESSAGE = (
+    "The Monitor tool is forbidden. Run the command in the foreground once and "
+    "read its output."
+)
+
+
 BACKGROUND_MESSAGE = (
     "Background shells are forbidden. Run the command in the foreground, "
     "without run_in_background. For a long run, pass timeout: 600000."
@@ -139,22 +152,40 @@ def in_daniel_workspace(command, cwd):
     return "/daniel-workspaces/" in cwd + "/" or bool(WORKSPACE_TARGET.search(command))
 
 
-def denial(command, cwd="", background=False, extra=()):
-    if background:
-        return BACKGROUND_MESSAGE
-    if UPDATE_STALE.search(command) and in_daniel_workspace(command, cwd):
+def denial(command, cwd="", background=False, extra=(), scope=None):
+    if scope != "global":
+        message = daniel_denial(command, cwd)
+        if message:
+            return message
+    if scope != "daniel":
+        return global_denial(command, background, extra)
+    return None
+
+
+def daniel_denial(command, cwd):
+    inside = in_daniel_workspace(command, cwd)
+    if inside and UPDATE_STALE.search(command):
         return UPDATE_STALE_MESSAGE
-    if EDIT.search(command) and in_daniel_workspace(command, cwd):
+    if inside and EDIT.search(command):
         return EDIT_MESSAGE
-    if SQUASH_WITHOUT_MESSAGE.search(command):
-        if in_daniel_workspace(command, cwd) and WORKSPACE_WRITE.search(command):
-            return WORKSPACE_WRITE_MESSAGE
-        return SQUASH_MESSAGE
-    for pattern, message in [*RULES, *extra]:
+    if inside and SQUASH_WITHOUT_MESSAGE.search(command) and WORKSPACE_WRITE.search(command):
+        return WORKSPACE_WRITE_MESSAGE
+    for pattern, message in DANIEL_RULES:
         if re.search(pattern, command):
             return message
-    if WORKSPACE_WRITE.search(command) and in_daniel_workspace(command, cwd):
+    if inside and WORKSPACE_WRITE.search(command):
         return WORKSPACE_WRITE_MESSAGE
+    return None
+
+
+def global_denial(command, background, extra):
+    if background:
+        return BACKGROUND_MESSAGE
+    if SQUASH_WITHOUT_MESSAGE.search(command):
+        return SQUASH_MESSAGE
+    for pattern, message in [*GLOBAL_RULES, *extra]:
+        if re.search(pattern, command):
+            return message
     return None
 
 
@@ -163,14 +194,19 @@ def main():
         event = json.load(sys.stdin)
     except ValueError:
         return 0
+    scope = "global" if "--global" in sys.argv else "daniel" if "--daniel" in sys.argv else None
     tool_input = event.get("tool_input") or {}
     cwd = event.get("cwd", "")
-    message = denial(
-        tool_input.get("command", ""),
-        cwd,
-        tool_input.get("run_in_background", False),
-        repo_rules(cwd),
-    )
+    if event.get("tool_name") == "Monitor":
+        message = None if scope == "daniel" else MONITOR_MESSAGE
+    else:
+        message = denial(
+            tool_input.get("command", ""),
+            cwd,
+            tool_input.get("run_in_background", False),
+            [] if scope == "daniel" else repo_rules(cwd),
+            scope,
+        )
     if not message:
         return 0
     print(message, file=sys.stderr)
@@ -188,12 +224,12 @@ def test():
     # jj edit resolves conflicts from the integration workspace, and only there.
     assert denial("jj edit xyz", "/x/daniel-workspaces/feat") == EDIT_MESSAGE
     assert denial("jj edit xyz", "/x/repo") is None
-    assert denial("jj new") == RULES[5][1]
-    assert denial("jj new -m 'x' --insert-before @") == RULES[5][1]
+    assert denial("jj new") == RULES[7][1]
+    assert denial("jj new -m 'x' --insert-before @") == RULES[7][1]
     assert denial("jj new --no-edit --insert-before @ -m 'feat: x'") is None
-    assert denial("jj abandon xyz") == RULES[6][1]
-    assert denial("jj restore src/a.ts") == RULES[6][1]
-    assert denial("git stash") == RULES[7][1]
+    assert denial("jj abandon xyz") == RULES[8][1]
+    assert denial("jj restore src/a.ts") == RULES[8][1]
+    assert denial("git stash") == RULES[4][1]
     assert denial("jj squash --into abc a.ts",
                   "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
     assert denial("jj bookmark delete handoff/feat",
@@ -223,8 +259,8 @@ def test():
     assert denial("jj op revert --what repo") == RULES[3][1]
     assert denial("jj op revert 197d348a40f5") is None
     assert denial("jj operation revert d79d4492643c --what repo") is None
-    assert denial("jj diff") == RULES[4][1]
-    assert denial("jj diff -r @ src/a.ts") == RULES[4][1]
+    assert denial("jj diff") == RULES[6][1]
+    assert denial("jj diff -r @ src/a.ts") == RULES[6][1]
     assert denial("jj diff --git src/a.ts") is None
     assert denial("jj diff --summary -r 'ws@'") is None
     assert denial("jj diff --name-only") is None
@@ -251,6 +287,18 @@ def test():
     assert denial("make test-integration", ws, background=True) == BACKGROUND_MESSAGE
     assert denial("ls", background=True) == BACKGROUND_MESSAGE
     assert denial("jj squash --into xykttnxu -u src/a.ts") is None
+    assert denial("sleep 15") == RULES[5][1]
+    assert denial("until curl -s x; do sleep 2; done") == RULES[5][1]
+    assert denial("jj new", scope="global") is None
+    assert denial("jj diff", scope="global") is None
+    assert denial("jj undo", scope="global") == RULES[1][1]
+    assert denial("jj undo", scope="daniel") is None
+    assert denial("jj squash --into abc a.ts", scope="global") == SQUASH_MESSAGE
+    assert denial("jj squash --into abc a.ts", scope="daniel") is None
+    assert denial("jj squash --into abc a.ts", ws, scope="daniel") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj workspace update-stale", ws, scope="global") is None
+    assert denial("ls", background=True, scope="daniel") is None
+    assert denial("make slow", extra=extra, scope="global") == "use make fast"
     print("ok")
 
 

@@ -7,16 +7,10 @@ hooks:
       hooks:
         - type: command
           command: >-
-            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/forbidden-commands.py"
+            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/forbidden-commands.py" --daniel
         - type: command
           command: >-
             python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/squash-target-check.py"
-  PostToolUse:
-    - matcher: Bash
-      hooks:
-        - type: command
-          command: >-
-            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/conflict-tripwire.py"
 ---
 
 # /daniel-commit-clean

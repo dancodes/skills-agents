@@ -46,6 +46,7 @@ mod's tests with `claude plugin test mods/<name>`.
 | Mod | What |
 |---|---|
 | `usage-footer` | 5h and weekly usage, with time to reset, in the prompt footer |
+| `guards` | global hooks: `forbidden-commands.py --global` (also bans Monitor and `sleep`), `push-guard.py`, `conflict-tripwire.py`, `question-turn.py` |
 
 To add a mod, create `mods/<name>/` and add `{ "name": "<name>", "source": "./<name>" }`
 to the marketplace's `plugins`, then run `./install.sh`.
@@ -77,6 +78,7 @@ data lives outside this repo, in `${SKILLS_AGENTS_PRIVATE:-$HOME/.config/skills-
 
 ```
 ticket.md                     Linear team id and key, assignee, cycle rule, branch glob
+push-allow                    bookmark globs, one per line, push-guard.py pushes without asking
 repos/<name>/match            a path relative to the workspace root; the profile applies when it exists
 repos/<name>/scaffolding      extra scaffolding directories, one per line (node_modules is built in)
 repos/<name>/setup-workspace.sh <source-root> <workspace-root>   run by new-workspace.sh

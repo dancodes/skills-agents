@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""Remind Claude that a question gets an answer, not work."""
+import json
+import re
+import sys
+
+QUESTION = re.compile(r"\?\s*$|^\s*(?:explain|what|why|how|is|are|does|do|where|which|when|who)\b", re.I)
+REQUEST = re.compile(r"^\s*(?:can|could|would|will) you\b|^\s*please\b", re.I)
+NOTE = (
+    "This prompt looks like a question. If it is one, answer it: read files, "
+    "but run no tests, builds, benchmarks or scratch code, and change nothing. "
+    "Propose the work and wait for a go."
+)
+
+
+def note(prompt):
+    return NOTE if QUESTION.search(prompt) and not REQUEST.search(prompt) else None
+
+
+def main():
+    try:
+        event = json.load(sys.stdin)
+    except ValueError:
+        return 0
+    text = note(event.get("prompt") or "")
+    if text:
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": text,
+        }}))
+    return 0
+
+
+def test():
+    assert note("why does the cache miss?") == NOTE
+    assert note("explain the park script") == NOTE
+    assert note("what happens here\n\nfoo.py line 3") == NOTE
+    assert note("is this right? fix it") == NOTE
+    assert note("can you run it?") is None
+    assert note("fix the conflict") is None
+    assert note("/daniel add a toggle") is None
+    print("ok")
+
+
+if __name__ == "__main__":
+    sys.exit(test() if "--test" in sys.argv else main())

@@ -7,7 +7,7 @@ hooks:
       hooks:
         - type: command
           command: >-
-            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/forbidden-commands.py"
+            python3 "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/forbidden-commands.py" --daniel
   PostToolUse:
     - matcher: Bash|Task|Agent
       hooks:
