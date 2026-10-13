@@ -130,8 +130,13 @@ WORKSPACE_WRITE_MESSAGE = (
 )
 
 
+WORKSPACE_TARGET = re.compile(
+    r"(?:\bcd\s+|(?:^|\s)(?:-R|--repository)[=\s]\s*)['\"]?[^\s;&|]*/daniel-workspaces/"
+)
+
+
 def in_daniel_workspace(command, cwd):
-    return "daniel-workspaces" in command + cwd
+    return "/daniel-workspaces/" in cwd + "/" or bool(WORKSPACE_TARGET.search(command))
 
 
 def denial(command, cwd="", background=False, extra=()):
@@ -204,6 +209,14 @@ def test():
     assert denial("jj workspace forget feat", "/x/daniel-workspaces/feat") is None
     # Integration runs from the integration workspace, so the same squash passes.
     assert denial("jj squash --from handoff/feat --into abc -u a.ts", "/x/repo") is None
+    assert denial("jj squash --into abc -u a.ts && rm -rf /x/daniel-workspaces/feat",
+                  "/x/repo") is None
+    assert denial("jj workspace forget feat && rm -rf ../daniel-workspaces/feat && jj git push",
+                  "/x/repo") is None
+    assert denial("jj -R /x/daniel-workspaces/feat squash --into abc -u a.ts",
+                  "/x/repo") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj --repository=/x/daniel-workspaces/feat git push",
+                  "/x/repo") == WORKSPACE_WRITE_MESSAGE
     assert denial("jj undo") == RULES[1][1]
     assert denial("jj redo") == RULES[1][1]
     assert denial("jj op revert") == RULES[3][1]
