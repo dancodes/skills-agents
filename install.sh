@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Install this repository's skills/, agents/ and hooks/ for Claude Code under
-# ~/.claude (or the directory specified by CLAUDE_HOME). When the pi coding
+# Install this repository's skills/, agents/, hooks/ and mods/ for Claude Code
+# under ~/.claude (or the directory specified by CLAUDE_HOME). When the pi coding
 # agent is installed, also install Pi-rendered skills and agents under
 # PI_CODING_AGENT_DIR (default: ~/.pi/agent). Pi never gets hooks.
 
@@ -18,7 +18,10 @@ Environment:
                        Only used when the pi command is installed.
 
 Claude Code always gets skills/, agents/ and hooks/ copied verbatim. Each
-skill directory is replaced whole, so files removed from the repo go too. When the
+skill directory is replaced whole, so files removed from the repo go too.
+When the `claude` command exists, mods/ is registered as a local plugin
+marketplace and every plugin it lists is installed; they load in place from
+the repo. When the
 `pi` command exists, skills/ and agents/ are also rendered for Pi (hooks
 stripped, Claude tool names mapped to Pi tool names, config path expressions
 rewritten) and installed there; hooks/ are never installed for Pi. Without
@@ -79,6 +82,20 @@ cp -a "$hooks_source/." "$hooks_destination/"
 printf 'Installed skills into %s\n' "$skills_destination"
 printf 'Installed agents into %s\n' "$agents_destination"
 printf 'Installed hooks into %s\n' "$hooks_destination"
+
+if command -v claude >/dev/null 2>&1; then
+  mods_source="$source_root/mods"
+  marketplace=$(python3 -c 'import json, sys; m = json.load(open(sys.argv[1])); print(m["name"]); [print(p["name"]) for p in m["plugins"]]' \
+    "$mods_source/.claude-plugin/marketplace.json")
+  { read -r marketplace_name; mapfile -t mods; } <<< "$marketplace"
+  CLAUDE_CONFIG_DIR="$claude_home" claude plugin marketplace add "$mods_source" >/dev/null
+  for mod in "${mods[@]}"; do
+    CLAUDE_CONFIG_DIR="$claude_home" claude plugin install "$mod@$marketplace_name" >/dev/null
+    printf 'Installed mod %s@%s\n' "$mod" "$marketplace_name"
+  done
+else
+  printf 'Skipping mods install: claude command not found.\n'
+fi
 
 if ! command -v pi >/dev/null 2>&1; then
   printf 'Skipping Pi install: pi command not found.\n'

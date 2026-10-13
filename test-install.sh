@@ -59,11 +59,17 @@ grep -q "^skills: no-comments$" "$pi_home/agents/impl.md" || fail "skills not pr
 grep -q "You implement code changes" "$pi_home/agents/impl.md" || fail "agent body lost"
 echo "ok: pi present renders skills and agents"
 
+if command -v claude >/dev/null 2>&1; then
+  grep -q '"usage-footer@daniel-mods": true' "$claude_home/settings.json" || fail "usage-footer mod not enabled"
+  grep -q "\"path\": \"$source_root/mods\"" "$claude_home/settings.json" || fail "mods marketplace not registered"
+  echo "ok: mods installed from the repo"
+fi
+
 mkdir -p "$tmp/broken/agents"
 printf -- '---\nname: broken\ntools: Bash, Teleport\n---\nbody\n' > "$tmp/broken/agents/broken.md"
 broken_root="$tmp/broken"
 cp "$source_root/install.sh" "$broken_root/install.sh"
-cp -a "$source_root/scripts" "$source_root/skills" "$source_root/agents" "$broken_root/"
+cp -a "$source_root/scripts" "$source_root/skills" "$source_root/agents" "$source_root/mods" "$broken_root/"
 mkdir -p "$broken_root/hooks"
 out=$(PATH="$tmp/bin:$PATH" PI_CODING_AGENT_DIR="$tmp/broken/pi" \
   CLAUDE_HOME="$tmp/broken/claude" "$broken_root/install.sh" 2>&1) \

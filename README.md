@@ -1,6 +1,6 @@
 # skills-agents
 
-Claude Code skills, agents and hooks for implementing changes in a jj repository
+Claude Code skills, agents, hooks and mods for implementing changes in a jj repository
 that several agents work in at once.
 
 ## Install
@@ -34,6 +34,21 @@ When `pi` is installed, it also renders `skills/` and `agents/` for Pi via
 The rendered agents and skills are the only capability source: Pi uses the
 same tool allowlists declared in the canonical agents, mapped to Pi's names.
 `hooks/` are Claude-only and are never installed for Pi.
+
+## Mods
+
+`mods/` is a local plugin marketplace named `daniel-mods`. Each mod is a
+plugin directory in it, listed in `mods/.claude-plugin/marketplace.json`.
+`install.sh` registers the marketplace and installs every listed mod, so they
+load in place from the repo: edit a mod, then run `/reload-plugins`. Run a
+mod's tests with `claude plugin test mods/<name>`.
+
+| Mod | What |
+|---|---|
+| `usage-footer` | 5h and weekly usage, with time to reset, in the prompt footer |
+
+To add a mod, create `mods/<name>/` and add `{ "name": "<name>", "source": "./<name>" }`
+to the marketplace's `plugins`, then run `./install.sh`.
 
 ## Flow
 

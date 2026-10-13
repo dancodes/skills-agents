@@ -1,0 +1,5 @@
+{
+  "name": "daniel-mods",
+  "owner": { "name": "Daniel Sorichetti" },
+  "plugins": [{ "name": "usage-footer", "source": "./usage-footer" }]
+}
