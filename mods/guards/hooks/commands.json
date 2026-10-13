@@ -1,0 +1,45 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/forbidden-commands.py\"; [ ! -f \"$f\" ] || python3 \"$f\" --global"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/push-guard.py\"; [ ! -f \"$f\" ] || python3 \"$f\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/conflict-tripwire.py\"; [ ! -f \"$f\" ] || python3 \"$f\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/question-turn.py\"; [ ! -f \"$f\" ] || python3 \"$f\""
+          }
+        ]
+      }
+    ]
+  }
+}
