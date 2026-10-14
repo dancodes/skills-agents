@@ -87,7 +87,8 @@ if command -v claude >/dev/null 2>&1; then
   mods_source="$source_root/mods"
   marketplace=$(python3 -c 'import json, sys; m = json.load(open(sys.argv[1])); print(m["name"]); [print(p["name"]) for p in m["plugins"]]' \
     "$mods_source/.claude-plugin/marketplace.json")
-  { read -r marketplace_name; mapfile -t mods; } <<< "$marketplace"
+  mods=()
+  { read -r marketplace_name; while read -r mod; do mods+=("$mod"); done; } <<< "$marketplace"
   CLAUDE_CONFIG_DIR="$claude_home" claude plugin marketplace add "$mods_source" >/dev/null
   for mod in "${mods[@]}"; do
     CLAUDE_CONFIG_DIR="$claude_home" claude plugin install "$mod@$marketplace_name" >/dev/null

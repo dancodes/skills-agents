@@ -92,7 +92,7 @@ reap() {
       continue
     fi
     started=$(field "$f" started_at)
-    age=$(( $(date +%s) - $(date -d "$started" +%s) ))
+    age=$(( $(date +%s) - $(date -d "$started" +%s 2>/dev/null || date -j -f '%Y-%m-%dT%H:%M:%S%z' "${started%:*}${started##*:}" +%s) ))
     (( age < 86400 )) || printf 'Running for more than 24h: %s on port %s. Stop: %s stop %s\n' \
       "$(field "$f" workspace)" "$(field "$f" port)" "$script" "$(field "$f" port)"
   done

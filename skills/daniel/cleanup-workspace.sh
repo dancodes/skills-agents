@@ -16,7 +16,7 @@ cd -- "$source"
 
 names=("$@")
 if (( ${#names[@]} == 0 )); then
-  mapfile -t names < <(jj --ignore-working-copy workspace list -T 'name ++ "\n"')
+  while read -r name; do names+=("$name"); done < <(jj --ignore-working-copy workspace list -T 'name ++ "\n"')
   for dir in "$root"/*/; do
     [[ -d $dir && ! -d $dir/.jj ]] && printf 'skip %s: not a jj workspace. Delete it by hand.\n' "$dir"
   done
