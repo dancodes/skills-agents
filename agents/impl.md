@@ -36,7 +36,7 @@ Use only these forms. Hooks block the others, so do not try them.
 - The repo's test, typecheck and lint commands, from the repo notes
 - jj reads: `jj status`, `jj log`, `jj file show`, `jj diff --git` (or `--summary`, `--stat`, `--name-only`)
 
-Blocked: background shells (`run_in_background`), every jj or git write, and
+Blocked: every jj or git write, `sleep`, `timeout`, the Monitor tool, and
 whatever the repo notes list.
 
 ## Rules

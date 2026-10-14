@@ -1,1 +1,1 @@
-{ "name": "guards", "version": "0.1.0", "description": "Global hooks: forbidden commands, Monitor and sleep ban, push guard, conflict tripwire, question-turn note", "hooks": "./hooks/commands.json" }
+{ "name": "guards", "version": "0.1.0", "description": "Global hooks: forbidden commands, Monitor, sleep and timeout ban, push guard, conflict tripwire, question-turn note", "hooks": "./hooks/commands.json" }

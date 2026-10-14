@@ -37,9 +37,11 @@ GLOBAL_RULES = [
     (r"\bgit\s+stash\b",
      "git stash is forbidden. This repository uses jj, and stashing moves files "
      "out from under every other agent working here."),
-    (r"\bsleep\s+\d",
-     "sleep and polling loops are forbidden. Run the command in the foreground "
-     "once and read its output. For a long run, pass timeout: 600000."),
+    (r"(?<![-\w.])g?(?:sleep\s+[\"']?(?:\.?\d|\$|inf)|timeout\s+(?:-\S+\s+(?:[A-Z]+\s+)?)*[\d$])"
+     r"|\bsleep\(\s*\.?\d",
+     "sleep, timeout and polling loops are forbidden. Run the command once and "
+     "read its output: in the foreground with timeout: 600000 for a long run, "
+     "or with run_in_background, which tells you when it exits."),
 ]
 
 DANIEL_RULES = [
@@ -120,12 +122,6 @@ MONITOR_MESSAGE = (
 )
 
 
-BACKGROUND_MESSAGE = (
-    "Background shells are forbidden. Run the command in the foreground, "
-    "without run_in_background. For a long run, pass timeout: 600000."
-)
-
-
 WORKSPACE_WRITE = re.compile(
     r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|backout|commit|new"
     r"|bookmark\s+(?:move|set|delete|forget|track|untrack)"
@@ -152,13 +148,13 @@ def in_daniel_workspace(command, cwd):
     return "/daniel-workspaces/" in cwd + "/" or bool(WORKSPACE_TARGET.search(command))
 
 
-def denial(command, cwd="", background=False, extra=(), scope=None):
+def denial(command, cwd="", extra=(), scope=None):
     if scope != "global":
         message = daniel_denial(command, cwd)
         if message:
             return message
     if scope != "daniel":
-        return global_denial(command, background, extra)
+        return global_denial(command, extra)
     return None
 
 
@@ -178,9 +174,7 @@ def daniel_denial(command, cwd):
     return None
 
 
-def global_denial(command, background, extra):
-    if background:
-        return BACKGROUND_MESSAGE
+def global_denial(command, extra):
     if SQUASH_WITHOUT_MESSAGE.search(command):
         return SQUASH_MESSAGE
     for pattern, message in [*GLOBAL_RULES, *extra]:
@@ -203,7 +197,6 @@ def main():
         message = denial(
             tool_input.get("command", ""),
             cwd,
-            tool_input.get("run_in_background", False),
             [] if scope == "daniel" else repo_rules(cwd),
             scope,
         )
@@ -284,11 +277,21 @@ def test():
     assert denial("ws=$(pwd)/x; for f in $ws/*; do echo $f; done") is None
     assert denial("make test-integration") is None
     assert denial("jj op log") is None
-    assert denial("make test-integration", ws, background=True) == BACKGROUND_MESSAGE
-    assert denial("ls", background=True) == BACKGROUND_MESSAGE
     assert denial("jj squash --into xykttnxu -u src/a.ts") is None
     assert denial("sleep 15") == RULES[5][1]
     assert denial("until curl -s x; do sleep 2; done") == RULES[5][1]
+    assert denial("sleep .5") == RULES[5][1]
+    assert denial("sleep \"$delay\"") == RULES[5][1]
+    assert denial("/bin/sleep infinity") == RULES[5][1]
+    assert denial("gsleep 1") == RULES[5][1]
+    assert denial("python3 -c 'import time; time.sleep(5)'") == RULES[5][1]
+    assert denial("timeout 30 make test") == RULES[5][1]
+    assert denial("gtimeout -s KILL 5s curl x") == RULES[5][1]
+    assert denial("timeout --signal=TERM $t yarn dev") == RULES[5][1]
+    assert denial("pytest --timeout 30 tests") is None
+    assert denial("curl --connect-timeout 5 x") is None
+    assert denial("grep -rn timeout src") is None
+    assert denial("grep -rn 'time.sleep(' src") is None
     assert denial("jj new", scope="global") is None
     assert denial("jj diff", scope="global") is None
     assert denial("jj undo", scope="global") == RULES[1][1]
@@ -297,7 +300,6 @@ def test():
     assert denial("jj squash --into abc a.ts", scope="daniel") is None
     assert denial("jj squash --into abc a.ts", ws, scope="daniel") == WORKSPACE_WRITE_MESSAGE
     assert denial("jj workspace update-stale", ws, scope="global") is None
-    assert denial("ls", background=True, scope="daniel") is None
     assert denial("make slow", extra=extra, scope="global") == "use make fast"
     print("ok")
 
