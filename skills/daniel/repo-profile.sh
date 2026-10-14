@@ -24,8 +24,8 @@ main() {
   case $1 in
     root) printf '%s\n' "$root" ;;
     dir) [[ -z $profile ]] || printf '%s\n' "$profile" ;;
-    scaffold-grep) scaffolding "$profile" | paste -sd'|' | sed 's/.*/(^|[ \/])(&)(\/|$)/' ;;
-    scaffold-revset) scaffolding "$profile" | while read -r path; do printf 'files(glob:"**/%s") | files(glob:"**/%s/**")\n' "$path" "$path"; done | paste -sd'|' | sed 's/)|f/) | f/g' ;;
+    scaffold-grep) scaffolding "$profile" | paste -sd'|' - | sed 's/.*/(^|[ \/])(&)(\/|$)/' ;;
+    scaffold-revset) scaffolding "$profile" | while read -r path; do printf 'files(glob:"**/%s") | files(glob:"**/%s/**")\n' "$path" "$path"; done | paste -sd'|' - | sed 's/)|f/) | f/g' ;;
     *) usage ;;
   esac
 }
