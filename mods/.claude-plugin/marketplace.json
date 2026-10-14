@@ -4,6 +4,7 @@
   "plugins": [
     { "name": "usage-footer", "source": "./usage-footer" },
     { "name": "guards", "source": "./guards" },
-    { "name": "tool-timer", "source": "./tool-timer" }
+    { "name": "tool-timer", "source": "./tool-timer" },
+    { "name": "aside", "source": "./aside" }
   ]
 }

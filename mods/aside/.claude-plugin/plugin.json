@@ -1,0 +1,6 @@
+{
+  "name": "aside",
+  "version": "0.1.0",
+  "description": "Ask a side question in a fork of this session, in a modal you can discard or promote",
+  "types": "./types/index.d.ts"
+}
