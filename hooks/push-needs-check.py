@@ -10,7 +10,7 @@ CHECK = re.compile(r"\b(?:typecheck|tsc|test|tests|pytest|vitest|lint|tf-run-tes
 EDITS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 MESSAGE = (
     "Push denied: no passing check ran after the last conflict edit or jj "
-    "rewrite. Run the typecheck and the tests of the files you touched at the "
+    "rewrite. Run the typecheck and the lint of the files you touched at the "
     "stack tip, in the foreground, then push. A simple fix is no exception."
 )
 

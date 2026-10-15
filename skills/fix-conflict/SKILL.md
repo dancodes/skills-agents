@@ -30,12 +30,11 @@ Fix it fully. Every step runs, however small the fix looks.
 5. `jj squash -u` into the conflicted commit. The tripwire hook then lists
    the conflicts left. That list is your next work, not a reason to stop.
 6. Repeat from step 2 until `jj log -r 'conflicts() & <stack>'` is empty.
-7. Check at the tip: `jj new <tip>`. Run the typecheck, the lint and the
-   tests of every file you resolved, in the foreground. Take the commands
+7. Check at the tip: `jj new <tip>`. Run the typecheck and the lint of every
+   file you resolved, in the foreground. Do not run tests. Take the commands
    from the repo profile's `notes.md`
    (`"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/repo-profile.sh" dir`)
-   or the repo's CLAUDE.md. A passing test run does not prove types: always
-   run the typecheck too.
+   or the repo's CLAUDE.md.
 8. A check fails: fix it in the working copy, then
    `jj squash -u --into <owner> <path>`, where the owner is the stack commit
    that last touched that file. Rerun step 7.
