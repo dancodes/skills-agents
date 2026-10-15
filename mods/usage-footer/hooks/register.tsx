@@ -46,6 +46,7 @@ export const register: Register = on => {
             ? [<Text dimColor> (</Text>, <Text color="warning">{part.reset}</Text>, <Text dimColor>)</Text>]
             : []),
         ])}
+        {context && [<Text dimColor>{parts.length ? ' · ' : '   '}</Text>, <Text color="text">{context}</Text>]}
       </Box>
     )
   })
