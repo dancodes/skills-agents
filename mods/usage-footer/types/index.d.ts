@@ -2,6 +2,6 @@ export type Limits = readonly { kind: string; percentUsed: number; resetsAt?: st
 
 declare module 'claude-code' {
   interface PluginState {
-    'usage-footer': { limits: Limits }
+    'usage-footer': { limits: Limits; tokens: number | null }
   }
 }

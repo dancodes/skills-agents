@@ -21,3 +21,5 @@ export const usageParts = (limits: Limits, now: number): UsagePart[] =>
     const reset = limit.resetsAt ? timeLeft(Date.parse(limit.resetsAt) - now) : null
     return [{ label, percent: `${limit.percentUsed}%`, reset }]
   })
+
+export const contextK = (tokens: number | null | undefined) => (tokens == null ? null : `${Math.round(tokens / 1000)}k`)

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { usageParts } from '../hooks/format'
+import { contextK, usageParts } from '../hooks/format'
 
 test('splits 5h and weekly usage into label, percent and time to reset', async () => {
   const now = Date.parse('2026-10-13T10:00:00Z')
@@ -16,4 +16,11 @@ test('splits 5h and weekly usage into label, percent and time to reset', async (
   ])
   expect(usageParts([{ kind: 'five_hour', percentUsed: 7 }], now)).toEqual([{ label: '5h', percent: '7%', reset: null }])
   expect(usageParts([], now)).toEqual([])
+})
+
+test('shows context tokens in thousands', async () => {
+  expect(contextK(58_412)).toBe('58k')
+  expect(contextK(499)).toBe('0k')
+  expect(contextK(null)).toBe(null)
+  expect(contextK(undefined)).toBe(null)
 })

@@ -1,1 +1,1 @@
-{ "name": "usage-footer", "version": "0.1.0", "description": "Shows 5h and weekly usage with reset times in the prompt footer", "types": "./types/index.d.ts" }
+{ "name": "usage-footer", "version": "0.1.0", "description": "Shows 5h and weekly usage with reset times, and context tokens, in the prompt footer", "types": "./types/index.d.ts" }
