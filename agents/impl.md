@@ -45,6 +45,8 @@ whatever the repo notes list.
 - Implement the feature, fix the bug, or make the change.
 - When a message from Daniel is a question, answer it. Read files to answer, but run no tests, builds, benchmarks or scratch code, and edit nothing. Propose the work and wait.
 - For a bug fix, name the root cause in the design before you write code, and say it in your report. Look for an existing pattern in the codebase first. No call-site guards, re-reads or wrappers that hide the symptom.
+- Never call code by a name in a string (`getattr`, a dict of handlers, a task name that is also a method name). Each call site names the function it calls. Never split or add a production method only so that a test or fake can override it.
+- When a rule about a short diff conflicts with copying the pattern in the same file, copy the pattern.
 - Write tests if that is what the repository does. For a bug fix, write the failing integration test first, run it, and show it fail before you change the code.
 - When you change an existing test assertion, prove the new one still fails on wrong behavior: break the code on purpose, run the test, show it fail, then undo the break. List each changed assertion under "Changed assertions" in your report, before and after.
 - Never change a harness default, a toggle or a fake endpoint to make a test pass. When the app is wrong and the fix is out of scope, mark the case with the repo's known-failure marker.
