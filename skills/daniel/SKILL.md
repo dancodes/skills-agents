@@ -18,15 +18,15 @@ hooks:
 
 # /daniel
 
-Input: `/daniel <description of feature, bug, or change>` or `/daniel <path/to/markdown.md>`.
+Input: `/daniel <description of feature, bug, or change>` or `/daniel <path/to/markdown.md>`, optionally `with explore`, `with explore <N>` or `with grilling`, or both.
 
 You are the orchestrator. Prefix every message you send with `[orchestrator]`. Example: `[orchestrator] Received plan`.
 
-The orchestrator must not explore files, attempt to do work itself, or "save tokens". Its only commands are the workspace commands below. Everything else is delegated to agents and relayed to Daniel.
+The orchestrator must not explore files, attempt to do work itself, or "save tokens". Its only commands are the workspace commands, the explore workflow and the grilling skill below. Everything else is delegated to agents and relayed to Daniel.
 
 ## Flow
 
-1. Parse the request (read the markdown file if given). Derive a kebab-case `<feature-name>`.
+1. Parse the request (read the markdown file if given). Take `with explore [<N>]` and `with grilling` out of it and keep them for step 3. Derive a kebab-case `<feature-name>`.
 2. Create the workspace and link its dependencies:
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/new-workspace.sh" <feature-name>
@@ -42,7 +42,7 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/new-workspace.sh" <feature-name> <revision>
    ```
    The working copy then starts as `jj new <revision>`. Remember the revision:
-   step 6 needs it.
+   step 7 needs it.
 
    If the request names none, use the base named earlier in this conversation:
    a previous `/daniel` run's base, or a bookmark, change ID or commit Daniel
@@ -64,21 +64,33 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    If it fails, relay the error verbatim and wait. Otherwise spawn a
    `general-purpose` agent to run steps 2–5 of the `daniel-verify` skill's
    Setup for that workspace, port and template, and to return the target URL.
-3. Spawn the `impl` agent, handing it the workspace directory and the full request. With browser verify on, also hand it the port and the target URL, and tell it to check its change with the `daniel-verify` skill. Relay its report (result, modified files, removed safeguards, changed assertions, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. End the relay with one line: `approve` parks, `continue` commits the round, `ship` parks, tickets and pushes. Never trim or summarise the hunks, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them.
-4. If Daniel does not approve: send the feedback to the same running `impl` agent via SendMessage. It already has the file context. Spawn a fresh `impl` agent only if the previous one is dead or Daniel asks for a clean take.
-5. If Daniel says **continue**: he approves this round but the run goes on.
+3. Only with `with explore` or `with grilling`. With both, explore first, then
+   grill.
+   - **Explore**: run the Workflow tool with `scriptPath` set to
+     `explore.workflow.js` in this skill's directory and `args`
+     `{"request": "<request>", "workspace": "<workspace-path>", "n": <N>}`.
+     N defaults to 3. It runs N read-only Sonnet agents in the workspace, one
+     lens each, and returns one report per lens. Tell Daniel in one line per
+     lens what it found.
+   - **Grill**: invoke the `mattpocock-skills:grilling` skill on the request.
+     Treat the explore reports as facts already found. When a question needs a
+     fact they lack, spawn an agent to find it, since you still read no files.
+     Move on only when Daniel confirms you share an understanding.
+4. Spawn the `impl` agent, handing it the workspace directory and the full request, every explore report verbatim, and every decision settled while grilling. With browser verify on, also hand it the port and the target URL, and tell it to check its change with the `daniel-verify` skill. Relay its report (result, modified files, removed safeguards, changed assertions, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. End the relay with one line: `approve` parks, `continue` commits the round, `ship` parks, tickets and pushes. Never trim or summarise the hunks, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them.
+5. If Daniel does not approve: send the feedback to the same running `impl` agent via SendMessage. It already has the file context. Spawn a fresh `impl` agent only if the previous one is dead or Daniel asks for a clean take.
+6. If Daniel says **continue**: he approves this round but the run goes on.
    Commit the round and keep the workspace and the `impl` agent alive.
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/commit-workspace.sh" <workspace-path> "<one-line message>"
    ```
-   Write the message as in step 6. It describes the round's change and moves
+   Write the message as in step 7. It describes the round's change and moves
    the workspace onto a fresh
    working-copy commit on top, so the next round of edits becomes a follow-up
    commit rather than more of this one. No handoff bookmark is created and
    nothing is forgotten: the park is the final approval's job. Relay its output
    verbatim, then take Daniel's next request to the same running `impl` agent.
    Rounds repeat as often as he wants.
-6. If Daniel approves with nothing further: finish the work.
+7. If Daniel approves with nothing further: finish the work.
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/park-workspace.sh" <workspace-path> "<one-line message>"
    ```
@@ -87,7 +99,7 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    up to the tip, or `--onto <revision> --squash` if Daniel asked to squash and
    the stack folds into that commit, keeping its message. Either way the script
    clears the workspace as below, there is no handoff bookmark, and there is
-   nothing for `/daniel-integrate` to land: skip step 7's offer and tell Daniel
+   nothing for `/daniel-integrate` to land: skip step 8's offer and tell Daniel
    where the work landed. When the base is `main`, park without `--onto`:
    landing there moves the `main` bookmark.
 
@@ -113,8 +125,8 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    and prints the merge request link. When the work landed with `--onto`, do
    not ticket it: push the bookmark that moved with `jj git push -b <bookmark>`
    and relay the merge request link from the output. Then stop, without step
-   7's offer.
-7. Stop. Nothing else happens in this run. Do not spawn the `jj` agent and do
+   8's offer.
+8. Stop. Nothing else happens in this run. Do not spawn the `jj` agent and do
    not squash. The park script itself forgets the workspace and deletes its
    directory: the `handoff/<workspace-name>` bookmark carries everything
    `/daniel-integrate` needs. Tell Daniel the work is parked, name the bookmark
