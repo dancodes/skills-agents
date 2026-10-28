@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: Create one Linear ticket per jj change (branch tip), title only, on the current cycle and assigned to the user, then push each change as a bookmark named after the ticket's auto-generated git branch. Use ONLY when the user invokes /ticket, with jj change ids or bare for the change this conversation created.
+description: Create one Linear ticket per jj change (branch tip), title only, no cycle, assigned to the user, then push each change as a bookmark named after the ticket's auto-generated git branch. Use ONLY when the user invokes /ticket, with jj change ids or bare for the change this conversation created.
 ---
 
 # ticket
@@ -15,9 +15,9 @@ conversation created no change, ask which one instead of guessing.
 ## Defaults
 
 Read `${SKILLS_AGENTS_PRIVATE:-$HOME/.config/skills-agents}/ticket.md`. It
-gives the Linear team id and key, the assignee, the cycle rule and the branch
-glob. If the file is missing, ask Daniel for the team once, use assignee
-`"me"` and the team's current cycle.
+gives the Linear team id and key, the assignee and the branch glob. If the file is
+missing, ask Daniel for the team once and use assignee `"me"`. Never set a
+cycle, even if that file names one.
 
 ## Flow
 
@@ -58,11 +58,11 @@ glob. If the file is missing, ask Daniel for the team once, use assignee
    deletes it after the push. Left in place, it would mark already-ticketed work
    as still parked and waiting for `/daniel-integrate`.
 3. Load tools if needed:
-   `ToolSearch("select:mcp__claude_ai_Linear__save_issue,mcp__claude_ai_Linear__list_cycles")`.
-4. Fetch the current cycle once.
+   `ToolSearch("select:mcp__claude_ai_Linear__save_issue")`.
+4. Do not fetch or set a cycle.
 5. Title: one commit → that commit's first line. Several commits → write a
    plain one-line title that covers all of them.
-6. Create one ticket per change with `save_issue` (team, assignee, cycle, title;
+6. Create one ticket per change with `save_issue` (team, assignee, title;
    nothing else). Take `gitBranchName` from each response.
 7. Prefix each commit's description with the ticket id if it lacks one:
    `jj -R "$REPO" describe -r <commit> -m "[<KEY>-NNNN] <existing first line>"`.
