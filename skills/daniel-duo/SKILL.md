@@ -1,7 +1,6 @@
 ---
 name: daniel-duo
 description: Investigate one bug with two independent agents, a quick fixer and a root cause hunter, then have a writer merge both into one write-up.
-disable-model-invocation: true
 ---
 
 # /daniel-duo

@@ -1,7 +1,6 @@
 ---
 name: daniel-planning
 description: Open a new task board page, or join one another session owns. Each session gets one background Sonnet subagent; the owner's applies changes, a joiner's sends them to the owner session.
-disable-model-invocation: true
 ---
 
 # /daniel-planning

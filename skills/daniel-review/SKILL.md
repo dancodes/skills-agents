@@ -1,7 +1,6 @@
 ---
 name: daniel-review
 description: Review pushed jj branches, one background review agent per branch, each publishing a light mode findings page.
-disable-model-invocation: true
 ---
 
 # /daniel-review
