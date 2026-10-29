@@ -41,9 +41,10 @@ Fix it fully. Every step runs, however small the fix looks.
 8. A check fails: fix it in the working copy, then
    `jj squash -u --into <owner> <path>`, where the owner is the stack commit
    that last touched that file. Rerun step 7.
-9. Push the stack's own bookmarks only: `jj git push -b <bookmark>`. A hook
-   denies the push until a check passes after the last edit. Never push a
-   bookmark the user did not name or does not own.
+9. Push the stack's own bookmarks only: `jj git push -b <bookmark>`, in its
+   own Bash call. A hook denies the push until a check passes after the last
+   edit or jj rewrite, so a squash in step 8 means you rerun step 7 first.
+   Never push a bookmark the user did not name or does not own.
 10. Put `@` back: `jj edit <recorded @>` if it still exists, else leave it on
     the tip.
 

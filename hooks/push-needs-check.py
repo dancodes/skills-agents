@@ -11,7 +11,8 @@ EDITS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 MESSAGE = (
     "Push denied: no passing check ran after the last conflict edit or jj "
     "rewrite. Run the typecheck and the lint of the files you touched at the "
-    "stack tip, in the foreground, then push. A simple fix is no exception."
+    "stack tip, in the foreground, after the last jj new, squash or rebase, "
+    "then push in its own call. A simple fix is no exception."
 )
 
 
@@ -41,15 +42,29 @@ def calls(lines):
                 yield block.get("name"), (block.get("input") or {}).get("command", ""), block.get("id") in failed
 
 
+def last(pattern, text):
+    return max((match.end() for match in pattern.finditer(text)), default=-1)
+
+
+def effect(command, failed):
+    push = PUSH.search(command)
+    text = command[:push.start()] if push else command
+    change, check = last(CHANGE, text), last(CHECK, text)
+    if check > change:
+        return not failed
+    return False if change >= 0 else None
+
+
 def denial(command, lines):
     if not PUSH.search(command):
         return None
     checked = True
     for name, cmd, failed in calls(lines):
-        if name in EDITS or (name == "Bash" and CHANGE.search(cmd)):
-            checked = False
-        elif name == "Bash" and CHECK.search(cmd) and not PUSH.search(cmd):
-            checked = not failed
+        state = False if name in EDITS else effect(cmd, failed) if name == "Bash" else None
+        if state is not None:
+            checked = state
+    if effect(command, False) is False:
+        checked = False
     return None if checked else MESSAGE
 
 
@@ -89,6 +104,10 @@ def test():
     assert denial(push, [use("1", "Edit"), use("2", "Bash", "yarn test --run a.test.ts"),
                          use("3", "Bash", "jj log -r 'conflicts()'")]) is None
     assert denial(push, ["not json", use("1", "Bash", "jj new abc")]) == MESSAGE
+    assert denial(push, [use("1", "Edit"), use("2", "Bash", "jj new abc && yarn typecheck && yarn lint"),
+                         result("2")]) is None
+    assert denial(push, [use("1", "Bash", "yarn typecheck && jj squash -u"), result("1")]) == MESSAGE
+    assert denial("jj squash -u && jj git push -b feat", []) == MESSAGE
     print("ok")
 
 
