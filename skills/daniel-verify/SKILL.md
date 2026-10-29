@@ -65,16 +65,21 @@ failed requests. Write "None" when a list is empty.
 
 ## Stop
 
-End every run with this line, filled in:
+You stop what you started. Never give Daniel a `verify.sh stop` command.
 
-> Dev server on :<port> still runs. Stop it after `/ticket` or when you finish: `"$verify" stop <port>`
+- Called by /daniel: end with `Dev server on :<port>, target <url>.` The
+  park script stops it when it deletes the workspace.
+- Called by Daniel directly: run `"$verify" stop <port>` when you finish,
+  unless he says to keep it.
+- `"$verify" stop --gone` stops every server whose workspace folder is gone.
 
 Other commands:
 - `"$verify" list` shows every entry, alive or dead, with its start time.
 - `"$verify" stop --all` also stops Chrome and Xvnc.
 
-`start` deletes entries whose PID is dead. It lists entries that are older
-than 24h but does not stop them.
+`start` deletes entries whose PID is dead and stops servers whose workspace
+folder is gone. It lists entries that are older than 24h but does not stop
+them.
 
 ## Watching from another machine
 

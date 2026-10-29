@@ -24,6 +24,7 @@ Usage:
   verify.sh set-target <path> <template> <url>
   verify.sh list
   verify.sh stop <path|port>
+  verify.sh stop --gone
   verify.sh stop --all
 EOF
   exit 2
@@ -89,6 +90,10 @@ reap() {
     if ! alive "$(field "$f" pid)"; then
       printf 'Removed a dead entry: %s (port %s).\n' "$(field "$f" workspace)" "$(field "$f" port)"
       rm -f "$f"
+      continue
+    fi
+    if [[ ! -d $(field "$f" workspace) ]]; then
+      stop_entry "$f"
       continue
     fi
     started=$(field "$f" started_at)
@@ -196,6 +201,10 @@ list() {
 
 stop() {
   local f
+  if [[ $1 == --gone ]]; then
+    reap
+    return
+  fi
   if [[ $1 == --all ]]; then
     for f in "$state"/*.json; do [[ -e $f ]] && stop_entry "$f"; done
     pkill -u "$USER" -f -- "--user-data-dir=$home/chrome-profile" || true

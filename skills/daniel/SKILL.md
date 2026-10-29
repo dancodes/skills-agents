@@ -132,8 +132,8 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    `/daniel-integrate` needs. Tell Daniel the work is parked, name the bookmark
    and the change ID of every commit under it, and offer the two ways forward: `/daniel-integrate` to land it on the feature line, or `/ticket` to
    turn it into a Linear ticket and a pushed branch. `/ticket` with no
-   arguments uses these changes. With browser verify on, end with the
-   `daniel-verify` stop line for this workspace's port.
+   arguments uses these changes. The park script stops this workspace's dev
+   server. Never hand Daniel a stop command.
 
 ## Why parking, and not committing here
 

@@ -127,10 +127,12 @@ printf '\nThis workspace is finished. Run no further command in it.\n'
 
 # The repository holds the work now, so the workspace is disposable. Forget it
 # from the source workspace, never from inside the one being removed.
+verify=$(dirname -- "$(realpath -- "$0")")/../daniel-verify/verify.sh
 cd -- "$source"
 if jj --ignore-working-copy workspace forget "$name"; then
   rm -rf -- "$workspace"
   printf '\nWorkspace forgotten and %s deleted.\n' "$workspace"
+  "$verify" stop --gone || true
 else
   printf '\nParked, but could not forget the workspace. Delete %s by hand.\n' "$workspace" >&2
 fi

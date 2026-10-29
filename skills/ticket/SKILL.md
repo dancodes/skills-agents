@@ -83,5 +83,6 @@ One table: change id, ticket id, bookmark, merge request URL from the push
 output, and whether a handoff bookmark was deleted.
 
 Then run `"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel-verify/verify.sh" list`.
-For each dev server it shows, end with a line asking Daniel to stop it, with
-the `verify.sh stop <port>` command.
+Run `verify.sh stop <port>` yourself for every server whose workspace this
+run ticketed, then `verify.sh stop --gone`. In one line, name the servers
+still running. Never ask Daniel to stop a server.

@@ -47,3 +47,4 @@ for name in "${names[@]}"; do
   rm -rf -- "$workspace"
   printf 'removed %s\n' "$name"
 done
+"$(dirname -- "$(realpath -- "$0")")/../daniel-verify/verify.sh" stop --gone || true
