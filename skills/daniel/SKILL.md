@@ -18,11 +18,46 @@ hooks:
 
 # /daniel
 
-Input: `/daniel <description of feature, bug, or change>` or `/daniel <path/to/markdown.md>`, optionally `with explore`, `with explore <N>` or `with grilling`, or both.
+Input: `/daniel <description of feature, bug, or change>` or `/daniel <path/to/markdown.md>`, optionally `with explore`, `with explore <N>` or `with grilling`, or both, and optionally `insta`.
+
+`insta` means a fast one-shot: impl skips the plan and builds the whole change
+at once, and you relay causes without the confirming agent. Everything else
+stays.
+
+Without `insta`, start your first message with this reminder, then go on
+without waiting:
+
+> Flow: impl plans the commits, you say go, it builds one commit per round
+> (`continue` / `approve` / `ship`). Say `insta` next time for a one-shot.
 
 You are the orchestrator. Prefix every message you send with `[orchestrator]`. Example: `[orchestrator] Received plan`.
 
 The orchestrator must not explore files, attempt to do work itself, or "save tokens". Its only commands are the workspace commands, the explore workflow and the grilling skill below. Everything else is delegated to agents and relayed to Daniel.
+
+## Approval and limits
+
+- Impl changes code only after Daniel says go, approve, continue or ship. A
+  reply that adds or changes a requirement is not a go: restate the changed
+  plan as a numbered list and wait.
+- "Cause only", "don't fix", "don't act yet" and any question: pass the limit
+  to impl word for word ("read only, change no file") and relay only the
+  answer.
+- Daniel's question while impl runs: SendMessage it to the running impl agent
+  with "answer only, change nothing". If none is alive, spawn a read-only
+  Explore agent.
+
+## Relaying to Daniel
+
+- One idea per line, plain words. Name things; never a step code alone.
+- A decision: one line of background, the options as a numbered list with
+  what each costs, then your recommendation. Plain text, never
+  AskUserQuestion.
+- If a fix only partly resolves a finding, say so in the first line.
+- Bugs: one item each, with what breaks for the user, where, the cause, and
+  the commit that added it. Do not skip one because it predates the ticket.
+- Without `insta`, before you relay a root cause, a claim that contradicts Daniel, or "no such
+  code exists", spawn a second read-only Explore agent to confirm it with
+  file:line. Relay only confirmed facts and mark the rest "unchecked".
 
 ## Flow
 
@@ -76,7 +111,7 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
      Treat the explore reports as facts already found. When a question needs a
      fact they lack, spawn an agent to find it, since you still read no files.
      Move on only when Daniel confirms you share an understanding.
-4. Spawn the `impl` agent, handing it the workspace directory and the full request, every explore report verbatim, and every decision settled while grilling. With browser verify on, also hand it the port and the target URL, and tell it to check its change with the `daniel-verify` skill. Relay its report (result, modified files, removed safeguards, changed assertions, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. End the relay with one line: `approve` parks, `continue` commits the round, `ship` parks, tickets and pushes. Never trim or summarise the hunks, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them.
+4. Spawn the `impl` agent, handing it the workspace directory and the full request, every explore report verbatim, and every decision settled while grilling. Without `insta`, its first task is a plan, read only: a numbered list of commits, each one concern with its own tests, backend and frontend in separate commits, with the files and tests for each; the smallest option that would also work and why not; a fix at the shared definition, not only the call site the ticket names; every item of the request, naming any it drops. Relay the plan and wait for go. Then impl builds commit 1 only. With `insta`, impl builds the whole change at once. With browser verify on, also hand it the port and the target URL, and tell it to check its change with the `daniel-verify` skill. Relay its report (result, modified files, removed safeguards, changed assertions, and its diff hunk for every modified file, verbatim and complete) to Daniel and wait for approval. End the relay with one line: `approve` parks, `continue` commits the round, `ship` parks, tickets and pushes. Copy the hunks character for character: never retype, trim, reflow or summarise a line, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them. If the report is cut (a hunk ends mid-file, or there are fewer hunks than modified files), do not reconstruct it: ask impl to resend the missing hunks and relay those.
 5. If Daniel does not approve: send the feedback to the same running `impl` agent via SendMessage. It already has the file context. Spawn a fresh `impl` agent only if the previous one is dead or Daniel asks for a clean take.
 6. If Daniel says **continue**: he approves this round but the run goes on.
    Commit the round and keep the workspace and the `impl` agent alive.
@@ -89,7 +124,9 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    commit rather than more of this one. No handoff bookmark is created and
    nothing is forgotten: the park is the final approval's job. Relay its output
    verbatim, then take Daniel's next request to the same running `impl` agent.
-   Rounds repeat as often as he wants.
+   Rounds repeat as often as he wants. With a multi-commit plan, each commit
+   is one round: after `continue`, send impl the next commit. Impl cannot run
+   jj split, squash or new, so never ask it to.
 7. If Daniel approves with nothing further: finish the work.
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/park-workspace.sh" <workspace-path> "<one-line message>"
