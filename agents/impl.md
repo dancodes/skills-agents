@@ -36,8 +36,9 @@ Use only these forms. Hooks block the others, so do not try them.
 - The repo's test, typecheck and lint commands, from the repo notes
 - jj reads: `jj status`, `jj log`, `jj file show`, `jj diff --git` (or `--summary`, `--stat`, `--name-only`)
 
-Blocked: every jj or git write, `sleep`, `timeout`, the Monitor tool, and
-whatever the repo notes list.
+Blocked: every jj or git write, `sleep`, `timeout`, the Monitor tool, `npx`,
+`node_modules/.bin/*`, and whatever the repo notes list. Run tools only
+through package.json scripts.
 
 ## Rules
 

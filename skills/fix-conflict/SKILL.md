@@ -34,7 +34,10 @@ Fix it fully. Every step runs, however small the fix looks.
    file you resolved, in the foreground. Do not run tests. Take the commands
    from the repo profile's `notes.md`
    (`"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/repo-profile.sh" dir`)
-   or the repo's CLAUDE.md.
+   or the repo's CLAUDE.md. Frontend, from `frontend/`: `yarn generate-api`
+   (the generated client is gitignored and goes stale after a rebase), then
+   `yarn typecheck && yarn lint`. Use package.json scripts only. Never `npx`
+   or `node_modules/.bin/<tool>`: hooks block both.
 8. A check fails: fix it in the working copy, then
    `jj squash -u --into <owner> <path>`, where the owner is the stack commit
    that last touched that file. Rerun step 7.

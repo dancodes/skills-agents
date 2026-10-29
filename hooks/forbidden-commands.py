@@ -174,11 +174,18 @@ def daniel_denial(command, cwd):
     return None
 
 
+QUOTED = re.compile(r"'[^']*'|\"(?:[^\"\\]|\\.)*\"")
+
+
 def global_denial(command, extra):
     if SQUASH_WITHOUT_MESSAGE.search(command):
         return SQUASH_MESSAGE
-    for pattern, message in [*GLOBAL_RULES, *extra]:
+    for pattern, message in GLOBAL_RULES:
         if re.search(pattern, command):
+            return message
+    unquoted = QUOTED.sub("''", command)
+    for pattern, message in extra:
+        if re.search(pattern, unquoted):
             return message
     return None
 
@@ -265,6 +272,8 @@ def test():
     extra = [(r"\bmake\s+slow\b", "use make fast")]
     assert denial("make slow", extra=extra) == "use make fast"
     assert denial("make slow") is None
+    assert denial("grep -n 'make slow' notes.md", extra=extra) is None
+    assert denial('rg "make slow" .', extra=extra) is None
     ws = "/x/daniel-workspaces/feat"
     assert denial("make test-integration", ws) is None
     assert denial("WORKERS=32 make test-integration TESTS=tests/foo", ws) is None
