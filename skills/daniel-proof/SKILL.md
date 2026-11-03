@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # /daniel-proof
 
-Input: the claims to prove (pasted text, a Linear ticket, or a feature description) and a session URL on the local dev server, on whatever port it runs (`http://localhost:<port>/...`). Output: one PNG per shot plus `shots.md` in `<root>/tmp/proof-shots/<slug>/`. `<root>` is the root of the repo or jj workspace you run in (`jj root`, else `git rev-parse --show-toplevel`). `<slug>` is the ticket id, or a short kebab-case name for the feature.
+Input: the claims to prove (pasted text, a Linear ticket, or a feature description) and a session URL on the local dev server, on whatever port it runs (`http://localhost:<port>/...`). Output: one PNG per shot plus `shots.md` in `<dir>` = `${TMPDIR:-/tmp}/proof-shots/<slug>/`, the OS temp folder, so parking or deleting a workspace cannot delete them. Create it and `<root>/tmp/proof-capture/` with `mkdir -p` first. `<root>` is the root of the repo or jj workspace you run in (`jj root`, else `git rev-parse --show-toplevel`). `<slug>` is the ticket id, or a short kebab-case name for the feature.
 
 ## 1. Write the shot list
 
@@ -37,14 +37,14 @@ Hand the shot list to one general-purpose subagent. It is the only one, because 
 - After each navigate, wait until more than the app shell renders. The dev server can take 20 to 40 s.
 - Crop each shot to the smallest box that holds its must-see values and their context. Never capture a whole panel, drawer or page when a part of it proves the point. Never cut a must-see value, its label or its header.
 - For each shot, scroll the region into view. Then capture it one of two ways:
-  - Element capture: `take_screenshot` with a `uid` from `take_snapshot` and `filePath` set to `<dir>/<id>.png`. Use it only when the smallest node that holds everything adds no other UI.
-  - Crop: otherwise, take the viewport to `<dir>/<id>-full.png`. With `evaluate_script`, read the `getBoundingClientRect` of each must-see element and its label, and take the union box. Add about 8 px of margin, multiply by 2 for device pixels, and crop with `python3 ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel-proof/crop.py <id>-full.png <id>.png <x*2> <y*2> <w*2> <h*2>`. It uses only the Python standard library, so it runs on Linux and macOS. Delete the `-full` file.
+  - Element capture: `take_screenshot` with a `uid` from `take_snapshot` and `filePath` set to `<root>/tmp/proof-capture/<id>.png`, then move it to `<dir>/<id>.png`. Use it only when the smallest node that holds everything adds no other UI.
+  - Crop: otherwise, take the viewport to `<root>/tmp/proof-capture/<id>-full.png`. With `evaluate_script`, read the `getBoundingClientRect` of each must-see element and its label, and take the union box. Add about 8 px of margin, multiply by 2 for device pixels, and crop with `python3 ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel-proof/crop.py <root>/tmp/proof-capture/<id>-full.png <dir>/<id>.png <x*2> <y*2> <w*2> <h*2>`. It uses only the Python standard library, so it runs on Linux and macOS. Delete the `-full` file.
   - When the must-see parts are far apart, such as a row label and a value ten columns away, hide the rows or columns between them with `display:none` so the box stays small, as long as what remains still reads honestly. Remove those styles afterwards.
 - Open each PNG with the Read tool. Every must-see label and number has to be legible and match the claim.
-- If the UI contradicts a claim, still save the shot as `<id>-contradicts.png`. Report exactly what the UI says, and never title it as proof.
+- If the UI contradicts a claim, still save the shot as `<dir>/<id>-contradicts.png`. Report exactly what the UI says, and never title it as proof.
 - Report per shot: the file, the values it visibly shows, and any contradiction.
 
-`take_screenshot` only writes inside the workspace root, so `/tmp` is refused. That is why shots go to the repo's `tmp/`. Keep `tmp/` out of commits with `.git/info/exclude`. If `take_screenshot` refuses `<root>/tmp/`, use the same path under the root it accepts, and say so in the report.
+`take_screenshot` only writes inside the workspace root, so it refuses `<dir>`. That is why each capture lands in `<root>/tmp/proof-capture/` first and moves to `<dir>` at once. Keep `tmp/` out of commits with `.git/info/exclude`. If `take_screenshot` refuses `<root>/tmp/`, capture under the root it accepts, and say so in the report. Never leave a shot only in `<root>`.
 
 ## 4. Check and record
 
