@@ -112,7 +112,7 @@ entry_for() {
 }
 
 ensure_display() {
-  pgrep -u "$USER" -f "^Xvnc $display( |$)" >/dev/null && return
+  pgrep -u "$(id -u)" -f "^Xvnc $display( |$)" >/dev/null && return
   [[ -f $home/Xauthority ]] || xauth -f "$home/Xauthority" add "$display" . "$(mcookie)"
   rm -f "$socket"
   setsid Xvnc "$display" -geometry 1920x1080 -depth 24 -auth "$home/Xauthority" -nolisten tcp \
@@ -207,8 +207,8 @@ stop() {
   fi
   if [[ $1 == --all ]]; then
     for f in "$state"/*.json; do [[ -e $f ]] && stop_entry "$f"; done
-    pkill -u "$USER" -f -- "--user-data-dir=$home/chrome-profile" || true
-    pkill -u "$USER" -f "^Xvnc $display( |$)" || true
+    pkill -u "$(id -u)" -f -- "--user-data-dir=$home/chrome-profile" || true
+    pkill -u "$(id -u)" -f "^Xvnc $display( |$)" || true
     printf 'Stopped all dev servers, Chrome and Xvnc.\n'
     return
   fi
