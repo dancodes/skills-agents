@@ -1,0 +1,1049 @@
+<title>ORD-12 Classes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #f7f7f4;
+  --panel: #eeede7;
+  --surface: #ffffff;
+  --ink: #1a1914;
+  --muted: #4f4d46;
+  --faint: #7d7b73;
+  --line: #d3d1c8;
+  --accent: #c93f00;
+  --accent-soft: #f8dccb;
+  --crit: #b4231f;
+  --crit-soft: #f9dcd9;
+  --warn: #8a5a00;
+  --warn-soft: #f6e7c8;
+  --ok: #1d6b3a;
+  --ok-soft: #d9efe0;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+:root[data-mode="dark"] {
+  --bg: #14120b; --panel: #1b1912; --surface: #252219; --ink: #efeeea; --muted: #b3b1a9; --faint: #7f7d75; --line: #353229;
+  --accent: #ff7a3d; --accent-soft: #3d2416;
+  --crit: #ff8a80; --crit-soft: #3d1a17; --warn: #f0c060; --warn-soft: #3a2c10; --ok: #7fd6a0; --ok-soft: #173322;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.45 var(--sans); }
+button { font: inherit; color: inherit; }
+a { color: inherit; text-decoration-color: var(--faint); text-underline-offset: 2px; }
+a:hover { text-decoration-color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+code { font-family: var(--mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+
+.app { max-width: 1480px; margin: 0 auto; padding-bottom: 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding-block: 14px 12px; border-bottom: 1px solid var(--line); }
+.ttl { display: grid; gap: 2px; min-width: 0; }
+h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.sub b { color: var(--ink); font-weight: 500; }
+.right { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.sib { font-size: 12px; color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+.sib:hover { color: var(--ink); }
+.seg { display: inline-flex; padding: 2px; gap: 2px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.seg button { border: 0; background: transparent; padding: 4px 11px; border-radius: 6px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.seg button[aria-checked="true"], .seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+
+.view { display: grid; gap: 12px; padding-block: 12px; align-content: start; }
+.prose { max-width: 72ch; display: grid; gap: 10px; }
+.prose h2 { margin: 12px 0 0; font-size: 15px; font-weight: 600; letter-spacing: -0.005em; text-wrap: balance; }
+.prose h3 { margin: 8px 0 0; font-size: 13.5px; font-weight: 600; }
+.prose h4 { margin: 4px 0 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.prose p, .prose ul, .prose ol { margin: 0; line-height: 1.6; }
+.prose ul, .prose ol { padding-left: 20px; display: grid; gap: 3px; }
+.prose blockquote { margin: 0; padding: 4px 12px; border-left: 2px solid var(--line); color: var(--muted); }
+.eyebrow { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+hr.rule { border: 0; border-top: 1px solid var(--line); margin: 8px 0; width: 100%; }
+
+.pane, .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.pane-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
+.pane-h b { color: var(--ink); font-weight: 500; }
+.pane-b { padding: 8px 4px 10px; overflow-x: auto; }
+.body { overflow-x: auto; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.span2 { grid-column: 1 / -1; }
+.kv { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 9px 12px; font-size: 12px; }
+.kv div { display: grid; }
+.kv i { font-style: normal; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+.kv span { font-family: var(--mono); font-size: 12.5px; }
+.foot { padding: 7px 12px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); }
+
+table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 5px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-weight: 500; font-size: 11px; color: var(--muted); }
+th:first-child, td:first-child, td.l, th.l { text-align: left; }
+td.n { color: var(--faint); width: 1%; font-family: var(--mono); font-size: 11px; }
+td.mono { font-family: var(--mono); font-size: 11.5px; }
+td.wrap { white-space: normal; }
+td.blank { color: var(--faint); }
+td .s { color: var(--faint); font-size: 11px; }
+tr.tot td { font-weight: 600; border-top: 1px solid var(--ink); }
+
+.rules { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px; background: var(--panel); overflow: hidden; }
+.rules li { padding: 9px 12px; display: grid; gap: 2px; align-content: start; min-width: 0; box-shadow: 1px 0 0 var(--line), 0 1px 0 var(--line); }
+.rules b { font-size: 12px; font-weight: 600; }
+.rules span { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.legend > span { display: inline-flex; gap: 5px; align-items: center; }
+
+.callout { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 9px 12px; display: grid; gap: 3px; }
+.callout.crit { border-left-color: var(--crit); }
+.callout.ok { border-left-color: var(--ok); }
+.callout .label, .label { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.callout p { margin: 0; line-height: 1.55; }
+.codeblock { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.codeblock .file { padding: 6px 12px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.codeblock pre { margin: 0; padding: 10px 12px; overflow-x: auto; font-family: var(--mono); font-size: 12px; line-height: 1.55; }
+.codeblock .add { background: var(--ok-soft); color: var(--ok); display: inline-block; min-width: 100%; }
+.codeblock .del { background: var(--crit-soft); color: var(--crit); display: inline-block; min-width: 100%; }
+.codeblock .hl { background: var(--accent-soft); display: inline-block; min-width: 100%; }
+.codeblock .cmt { color: var(--faint); }
+
+.fl { font-family: var(--sans); font-size: 10.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 6px; background: var(--surface); white-space: nowrap; }
+.fl.a { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-soft); }
+.fl.crit { color: var(--crit); border-color: var(--crit-soft); background: var(--crit-soft); }
+.fl.warn { color: var(--warn); border-color: var(--warn-soft); background: var(--warn-soft); }
+.fl.ok { color: var(--ok); border-color: var(--ok-soft); background: var(--ok-soft); }
+
+.chip { --bl: 0.93; --bc: 0.04; --dl: 0.31; display: inline-block; font-family: var(--mono); font-weight: 500; font-size: 12px; line-height: 17px; padding: 0 6px; border-radius: 4px; white-space: nowrap;
+  background: oklch(var(--bl) var(--bc) var(--h, 250)); color: oklch(0.33 0.11 var(--h, 250)); border: 1px solid oklch(calc(var(--bl) - 0.12) calc(var(--bc) + 0.03) var(--h, 250)); }
+:root[data-mode="dark"] .chip { background: oklch(var(--dl) 0.06 var(--h, 250)); color: oklch(0.92 0.065 var(--h, 250)); border-color: oklch(calc(var(--dl) + 0.13) 0.075 var(--h, 250)); }
+.chip.k-enum { border-style: dashed; }
+.chip.k-union { border-style: dotted; border-width: 1.5px; }
+.chip.k-external { background: transparent; }
+.rules .chip, .legend .chip { font-size: 10.5px; line-height: 15px; padding: 0 4px; }
+
+@media (max-width: 760px) {
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .rules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* page */
+.app { padding-bottom: 0; }
+#v-boxes { --stage-top: 197px; }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="ttl">
+      <h1>ORD-12 Classes</h1>
+      <span class="sub">danielsorichetti/ord-12-order-pricing · <b>qrvtwmzk</b> · <span id="ncls"></span> new classes · box size = fields held</span>
+    </div>
+    <div class="right">
+      <div class="seg" role="radiogroup" aria-label="Theme">
+        <button type="button" role="radio" data-mode="light" aria-checked="true">Light</button>
+        <button type="button" role="radio" data-mode="dark" aria-checked="false">Dark</button>
+      </div>
+      <nav class="seg" role="tablist" aria-label="Views">
+        <button type="button" role="tab" data-view="boxes" aria-selected="true">Boxes</button>
+        <button type="button" role="tab" data-view="tree" aria-selected="false">Tree</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="view" id="v-boxes">
+      <ul class="rules">
+        <li><b>Invoice path</b><span><b data-chip="InvoiceReportInput"></b> → <b data-chip="InvoiceFigures"></b> → <b data-chip="InvoiceReport"></b> or <b data-chip="SkippedReport"></b></span></li>
+        <li><b>Quote path</b><span><b data-chip="QuoteReportInput"></b> → <b data-chip="QuoteFigures"></b> → <b data-chip="QuoteReport"></b></span></li>
+        <li><b>Folders</b><span>Pydantic models in <code>domain/entity/order/</code>: shared types in <code>order.py</code>, the rest in each report's <code>input.py</code> and <code>output.py</code>. Frozen dataclasses in <code>pricing/</code> hold unrounded numbers.</span></li>
+        <li><b>Moved</b><span><b data-chip="OrderSection"></b> moved from <code>document.py</code> to <code>order/order.py</code>.</span></li>
+      </ul>
+      <div id="boxes"></div>
+    </section>
+    <section class="view" id="v-tree" hidden>
+      <div class="pane treecard">
+        <div class="pane-h"><span><b>Type tree</b> · click a row to open it</span><button type="button" class="btn" id="more">Open one more level</button></div>
+        <div class="pane-b" id="tree"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const CHIP_ORDER = ["QuoteReportInput", "QuoteReport", "InvoiceReportInput", "InvoiceReport", "BundleOfferInput", "TieredOfferInput", "OfferInput", "PriceAdjustmentsInput", "CartInput", "DiscountInput", "DiscountDollars", "DiscountPercents", "PricingMethodType", "OrderStatus", "InvoiceSkipReason", "SkippedReport", "Address", "PricingMethodBlock", "MethodPrice", "SummaryRow", "RegressionEquation", "OfferRow", "BundleOfferDetails", "TieredPriceDetail", "CartCostDetails", "ItemsCostDetails", "ShippingCostDetails", "InsuranceCostDetails", "ChargeLine", "DiscountReport", "ReportValue", "ReportDate", "OrderSection", "InvoiceFigures", "CartCost", "PricedLine", "QuoteFigures", "QuotedOrder", "Offer", "BundleOffer", "TieredOffer", "QuoteColumns", "ColumnStatistics", "LinearRegression", "date"];
+
+const modeButtons = document.querySelectorAll("[data-mode]");
+function setMode(mode) {
+  document.documentElement.setAttribute("data-mode", mode);
+  modeButtons.forEach(b => b.setAttribute("aria-checked", String(b.dataset.mode === mode)));
+  try { localStorage.setItem("daniel-artifact-mode", mode); } catch (e) {}
+}
+let savedMode = "light";
+try { savedMode = localStorage.getItem("daniel-artifact-mode") || "light"; } catch (e) {}
+setMode(savedMode === "dark" ? "dark" : "light");
+modeButtons.forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+const CHIP_TIERS = [[0.94, 0.038, 0.3], [0.86, 0.075, 0.4], [0.79, 0.098, 0.23]];
+function chipStyle(name) {
+  let i = CHIP_ORDER.indexOf(name);
+  if (i < 0) { i = 0; for (const c of name) i = (i * 31 + c.charCodeAt(0)) >>> 0; }
+  const [bl, bc, dl] = CHIP_TIERS[i % 3];
+  return `--h:${Math.round((25 + i * 137.508) % 360)};--bl:${bl};--bc:${bc};--dl:${dl}`;
+}
+function chip(name, kind = "model") {
+  const esc = String(name).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return `<b class="chip k-${kind}" style="${chipStyle(name)}">${esc}</b>`;
+}
+document.querySelectorAll("[data-chip]").forEach(el => { el.outerHTML = chip(el.dataset.chip, el.dataset.kind); });
+
+const tabs = document.querySelectorAll("[data-view]");
+const views = [...tabs].map(b => b.dataset.view);
+function show(v) {
+  if (!views.length) return;
+  if (!views.includes(v)) v = views[0];
+  tabs.forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === v)));
+  views.forEach(x => { document.getElementById("v-" + x).hidden = x !== v; });
+}
+tabs.forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.view; show(b.dataset.view); }));
+window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+show(location.hash.slice(1));
+
+const WS = "domain/entity/order/order.py";
+const WCI = "domain/entity/order/invoice_report/input.py";
+const WCO = "domain/entity/order/invoice_report/output.py";
+const WSI = "domain/entity/order/quote_report/input.py";
+const WSO = "domain/entity/order/quote_report/output.py";
+const CB = "service/order/pricing/cart.py";
+const CA = "service/order/pricing/invoice_report/figures.py";
+const CS = "service/order/pricing/quote_report/figures.py";
+const CT = "service/order/pricing/quote_report/stats.py";
+const TCD = "service/order/transform/cart_details.py";
+const TCR = "service/order/transform/invoice_report/output.py";
+const TSV = "service/order/transform/quote_report/output.py";
+
+const TYPES = {
+  InvoiceReportInput: { file: WCI, py: "pydantic", by: "Caller → OrderService.get_invoice_report", doc: "Everything the Invoice report needs from the session.", fields: [
+    ["customer_address", "Address", "The customer's address, printed under the report's title."],
+    ["order_status", "OrderStatus", "Where the order stands. Only 'Paid' gives a report."],
+    ["order_date", "date | None", "The date the order was placed. No date gives no report."],
+    ["prices_dated", "date | None", "The date the price list is valid for. Another date gives no report."],
+    ["cart", "CartInput", "The order's cart and its unit rates."],
+    ["discount", "DiscountInput", "The three discount buckets, in dollars or percents."],
+    ["handling_fee", "float | None", "The handling fee in dollars."],
+    ["service_fee", "float | None", "The service fee in dollars."],
+    ["warranty_years", "float | None", "The warranty length in years, as typed."],
+    ["service_fee_comment", "str | None", "The staff's note on the service fee."],
+    ["commentary", "str | None", "The staff's comments on the order."],
+  ] },
+  QuoteReportInput: { file: WSI, py: "pydantic", by: "Caller → OrderService.get_quote_report", doc: "Everything the Quote report needs: the order and both offer lists.", fields: [
+    ["customer_address", "Address", "The customer's address, printed under the report's title."],
+    ["order_date", "date", "The date the order was placed."],
+    ["pricing_method", "PricingMethodType | None", "The chosen method. Bundle or Tiered completes that block; the other prints as not completed."],
+    ["order_quantity", "float | None", "The number of units in the order."],
+    ["quoted_total", "float | None", "The final quoted price in dollars."],
+    ["method_price", "float | None", "The price from the chosen method. Prints blank when not given."],
+    ["quote_comment", "str | None", "The staff's note on the quote."],
+    ["bundle_offers", "list[BundleOfferInput]", "The offers for the Bundle block, in order."],
+    ["tiered_offers", "list[TieredOfferInput]", "The offers for the Tiered block, in order."],
+  ] },
+  InvoiceReport: { file: WCO, py: "pydantic", by: "to_invoice_report · " + TCR, doc: "The Invoice report, every number with its printed form.", fields: [
+    ["customer_address", "str", "The customer's one-line address, e.g. '12 Harbour Lane, 40213'."],
+    ["order_date", "ReportDate", "The date the order was placed."],
+    ["service_fee_comment", "str", "The note on the service fee. Empty when not given."],
+    ["service_fee", "ReportValue", "The service fee."],
+    ["price_list_name", "str", "The price list's name, e.g. 'Spring Catalog'."],
+    ["commentary", "str", "The comments on the order. Empty when not given."],
+    ["cart", "CartCostDetails", "The charge lines and the details per line group."],
+    ["cart_total", "ReportValue", "The total before discounts, rounded once over all lines."],
+    ["discount", "DiscountReport", "The discount buckets and their total."],
+    ["discounted_cost", "ReportValue", "The cart total less discounts."],
+    ["handling_fee", "ReportValue", "The handling fee."],
+    ["warranty_years", "ReportValue", "The warranty length, e.g. '2 Years'."],
+    ["invoice_total", "ReportValue", "The amount the customer pays."],
+    ["fixed_text", "list[OrderSection]", "Terms of sale, what the price includes and excludes, and the return policy."],
+  ] },
+  SkippedReport: { file: WCO, py: "pydantic", by: "OrderService.get_invoice_report · service.py", doc: "Returned in place of InvoiceReport when a skip rule matches.", fields: [
+    ["reason", "InvoiceSkipReason", "Why the invoice report has no pages."],
+  ] },
+  QuoteReport: { file: WSO, py: "pydantic", by: "to_quote_report · " + TSV, doc: "The Quote report: both method blocks, the per-offer details and the fixed text.", fields: [
+    ["customer_address", "str", "The customer's one-line address, e.g. '12 Harbour Lane, 40213'."],
+    ["order_date", "ReportDate", "The date the order was placed."],
+    ["quoted_total", "ReportValue", "The final quoted price, e.g. '$28,000'."],
+    ["order_quantity", "ReportValue", "The number of units, e.g. '440 Units'."],
+    ["final_per_unit", "ReportValue", "The final price per unit, e.g. '$63.64'."],
+    ["quote_comment", "str", "The note on the quote. Empty when not given."],
+    ["bundle", "PricingMethodBlock", "The Bundle Pricing block."],
+    ["tiered", "PricingMethodBlock", "The Tiered Pricing block."],
+    ["bundle_details", "list[BundleOfferDetails]", "The cart details, one block per Bundle offer."],
+    ["tiered_price_details", "list[TieredPriceDetail]", "The Tiered price details table, one row per Tiered offer."],
+    ["fixed_text", "list[OrderSection]", "Terms of sale, what the price includes and excludes, and the return policy."],
+  ] },
+  BundleOfferInput: { file: WSI, py: "pydantic", base: "OfferInput", by: "Caller", doc: "A Bundle offer: the price, plus the cart to price and take off it.", fields: [
+    ["offer_name", "str", "The offer's name as it prints, e.g. 'Starter Bundle'.", { base: "OfferInput" }],
+    ["offer_price", "float | None", "The offer's price in dollars. None leaves the offer blank.", { base: "OfferInput" }],
+    ["price_adjustments", "PriceAdjustmentsInput", "The adjustments added to the offer price.", { base: "OfferInput" }],
+    ["quantity", "float | None", "The number of units in the offer.", { base: "OfferInput" }],
+    ["cart", "CartInput", "The offer's cart and its unit rates."],
+    ["discount", "DiscountInput", "The offer's discount buckets, in dollars or percents."],
+    ["handling_fee", "float | None", "The offer's handling fee."],
+    ["other_fees", "float | None", "Other fees taken off the offer price."],
+  ] },
+  TieredOfferInput: { file: WSI, py: "pydantic", base: "OfferInput", by: "Caller", doc: "A Tiered offer: the price, plus the tier's share of it.", fields: [
+    ["offer_name", "str", "The offer's name as it prints, e.g. 'Starter Bundle'.", { base: "OfferInput" }],
+    ["offer_price", "float | None", "The offer's price in dollars. None leaves the offer blank.", { base: "OfferInput" }],
+    ["price_adjustments", "PriceAdjustmentsInput", "The adjustments added to the offer price.", { base: "OfferInput" }],
+    ["quantity", "float | None", "The number of units in the offer.", { base: "OfferInput" }],
+    ["tier_share_pct", "float | None", "The tier share percent typed in, e.g. 100."],
+    ["listed_tier_price", "float | None", "The listed tier price. With listed_full_price, it wins over the typed percent."],
+    ["listed_full_price", "float | None", "The listed full price."],
+  ] },
+  OfferInput: { file: WSI, py: "pydantic", by: "Base class only", doc: "The fields both offer inputs share. Not used on its own.", fields: [
+    ["offer_name", "str", "The offer's name as it prints, e.g. 'Starter Bundle'."],
+    ["offer_price", "float | None", "The offer's price in dollars. None leaves the offer blank."],
+    ["price_adjustments", "PriceAdjustmentsInput", "The adjustments added to the offer price."],
+    ["quantity", "float | None", "The number of units in the offer."],
+  ] },
+  PriceAdjustmentsInput: { file: WSI, py: "pydantic", by: "Caller", doc: "Five signed dollar adjustments. Their sum is the net adjustment.", fields: [
+    ["coupon_adjustment", "float | None", "The coupon adjustment in dollars, signed."],
+    ["gift_card_adjustment", "float | None", "The gift card adjustment in dollars, signed."],
+    ["promo_code_adjustment", "float | None", "The promo code adjustment in dollars, signed."],
+    ["price_match_adjustment", "float | None", "The price match adjustment in dollars, signed."],
+    ["store_credit_adjustment", "float | None", "The store credit adjustment in dollars, signed."],
+  ] },
+  CartInput: { file: WS, py: "pydantic", by: "Caller", doc: "One cart and its unit rates. Gift wraps, samples and parcels print only.", fields: [
+    ["item_count", "float | None", "The number of items in the cart."],
+    ["gift_wrap_count", "float | None", "The gift wrap count. Printed only."],
+    ["sample_count", "float | None", "The free sample count. Printed only."],
+    ["parcel_count", "float | None", "The parcel count. Printed only."],
+    ["tier", "float | None", "The items' price tier, 1.0 to 5.0."],
+    ["item_rate", "float | None", "The item rate in dollars per item."],
+    ["shipping_method", "str | None", "The shipping method as it prints, e.g. 'Express Courier'."],
+    ["shipping_kg", "float | None", "The shipping weight. None when nothing ships."],
+    ["shipping_tier", "float | None", "The shipping price tier."],
+    ["shipping_rate", "float | None", "The shipping rate in dollars per kilogram."],
+    ["insured_value", "float | None", "The insured value. None when there is no insurance."],
+    ["insurance_tier", "float | None", "The insurance price tier."],
+    ["insurance_rate", "float | None", "The insurance rate in dollars per insured dollar."],
+  ] },
+  DiscountInput: { file: WS, py: "Annotated union", kind: "union", by: "Caller", doc: "Dollars or percents. The unit field picks the member.", members: [
+    ["unit = dollars", "DiscountDollars"],
+    ["unit = percent", "DiscountPercents"],
+  ] },
+  DiscountDollars: { file: WS, py: "pydantic", by: "Caller, or resolve_discount · cart.py", doc: "Three discount buckets in dollars.", fields: [
+    ["unit", "Literal['dollars']", "Marks the buckets as dollar amounts."],
+    ["member", "float | None", "Member discount in dollars."],
+    ["volume", "float | None", "Volume discount in dollars."],
+    ["clearance", "float | None", "Clearance discount in dollars."],
+  ] },
+  DiscountPercents: { file: WS, py: "pydantic", by: "Caller", doc: "Three discount buckets as percents of the cart total.", fields: [
+    ["unit", "Literal['percent']", "Marks the buckets as percents of the cart total."],
+    ["member", "float | None", "Member discount as a percent of the cart total."],
+    ["volume", "float | None", "Volume discount as a percent of the cart total."],
+    ["clearance", "float | None", "Clearance discount as a percent of the cart total."],
+  ] },
+  OrderStatus: { file: WCI, py: "StrEnum", kind: "enum", by: "Caller", doc: "Where the order stands.", values: [
+    ["Paid", "Gives a report."],
+    ["Pending", "Skips with reason pending."],
+    ["Cancelled", "Skips with reason cancelled."],
+  ] },
+  InvoiceSkipReason: { file: WCO, py: "StrEnum", kind: "enum", by: "OrderService._invoice_skip_reason", doc: "Checked in this order. The first match wins.", values: [
+    ["cancelled", "order_status is Cancelled."],
+    ["pending", "order_status is Pending."],
+    ["no_order_date", "order_date is None."],
+    ["stale_prices", "prices_dated is not order_date."],
+    ["unpriced", "No items line, or a present line has no rate."],
+  ] },
+  PricingMethodBlock: { file: WSO, py: "pydantic", by: "_method_block · " + TSV, doc: "One method's block: summary rows, offer rows, notes and both equations.", fields: [
+    ["method", "PricingMethodType", "The block's method, Bundle or Tiered."],
+    ["heading", "str", "The block's heading, e.g. 'Bundle Pricing'."],
+    ["not_completed_notice", "str | None", "e.g. 'Tiered Pricing Not Completed'. None for the chosen method."],
+    ["method_price", "MethodPrice | None", "The price line of the chosen method. None for the other method."],
+    ["regression", "SummaryRow", "The Simple Regression row."],
+    ["median", "SummaryRow", "The Median row."],
+    ["average", "SummaryRow", "The Average row."],
+    ["offers", "list[OfferRow]", "One row per offer, in input order."],
+    ["notes", "list[str]", "The Notes On Calculations, one line each, in order."],
+    ["net_value_equation", "RegressionEquation", "The regression equation for net value."],
+    ["adjusted_net_value_equation", "RegressionEquation", "Adjusted net value on quantity. Printed as 'Price per Unit Value'."],
+  ] },
+  MethodPrice: { file: WSO, py: "pydantic", by: "_method_price · " + TSV, doc: "The chosen method's price line.", fields: [
+    ["price", "ReportValue", "The price from the method, e.g. '$27,000'."],
+    ["per_unit", "ReportValue", "That price divided by the order's quantity, e.g. '$61.36'."],
+  ] },
+  SummaryRow: { file: WSO, py: "pydantic", by: "_summary_row · " + TSV, doc: "One summary row: Simple Regression, Median or Average.", fields: [
+    ["net_value", "ReportValue", "The row's value in the Net Value column."],
+    ["adjusted_net_value", "ReportValue", "The row's value in the Adj. Net Value column."],
+  ] },
+  RegressionEquation: { file: WS, py: "pydantic", by: "equation · transform/formatting.py", doc: "A fitted line, raw and printed.", fields: [
+    ["slope", "float | None", "The line's slope, unrounded. None when there is no line."],
+    ["intercept", "float | None", "The line's intercept, unrounded. None when there is no line."],
+    ["printed", "str", "e.g. 'y = 48.9x + -3,056'. Empty for none."],
+  ] },
+  OfferRow: { file: WSO, py: "pydantic", by: "_offer_row · " + TSV, doc: "One offer's row in a method block's table.", fields: [
+    ["offer_name", "str", "The offer's name."],
+    ["adjusted_offer_price", "ReportValue", "The offer price plus its adjustments."],
+    ["tier_share_pct", "ReportValue", "The tier share percent, e.g. '100.00%'. Blank in Bundle."],
+    ["net_value", "ReportValue", "The offer's net value."],
+    ["quantity", "ReportValue", "The offer's quantity, e.g. '492 Units'."],
+    ["per_unit", "ReportValue", "The net value divided by the quantity, e.g. '$79.26'."],
+    ["adjusted_net_value", "ReportValue", "The per unit value times the order's quantity."],
+  ] },
+  BundleOfferDetails: { file: WSO, py: "pydantic", by: "_bundle_details · " + TSV, doc: "One Bundle offer's detail block: the price, its cart and how the net value falls out.", fields: [
+    ["label", "str", "The offer's label, e.g. 'Offer 1'."],
+    ["offer_name", "str", "The offer's name."],
+    ["adjusted_offer_price", "ReportValue", "The adjusted offer price the net value calculation starts from."],
+    ["discounted_cost", "ReportValue", "The cart total less discounts."],
+    ["handling_fee", "ReportValue", "The handling fee."],
+    ["other_fees", "ReportValue", "The other fees."],
+    ["net_value", "ReportValue", "The offer's net value."],
+    ["per_unit", "ReportValue", "The offer's net value per unit."],
+    ["cart_total", "ReportValue", "The cart total, rounded once over all lines."],
+    ["discount_total", "ReportValue", "The discount taken off, e.g. '$0'. Blank when the offer is unpriced."],
+    ["discount", "DiscountReport", "The offer's discount buckets and their total."],
+    ["quantity", "ReportValue", "The offer's quantity, e.g. '492 Units'."],
+    ["offer_price", "ReportValue", "The offer price in the adjusted price line."],
+    ["net_adjustment", "ReportValue", "The adjustments added. Blank when none were given."],
+    ["cart", "CartCostDetails", "The offer's charge details per line group."],
+  ] },
+  TieredPriceDetail: { file: WSO, py: "pydantic", by: "_tiered_price_detail · " + TSV, doc: "One row of the Tiered price details table.", fields: [
+    ["label", "str", "The offer's label, e.g. 'Offer 1'."],
+    ["offer_name", "str", "The offer's name."],
+    ["offer_price", "ReportValue", "The offer price, e.g. '$319,990'."],
+    ["net_adjustment", "ReportValue", "The adjustments added. Blank when none were given."],
+    ["adjusted_offer_price", "ReportValue", "The adjusted offer price, e.g. '319,990'."],
+  ] },
+  CartCostDetails: { file: WS, py: "pydantic", by: "to_cart_cost_details · " + TCD, doc: "The charge lines per line group. Shared by both reports.", fields: [
+    ["items", "ItemsCostDetails", "The items block."],
+    ["shipping", "ShippingCostDetails | None", "The shipping block. None when nothing ships."],
+    ["insurance", "InsuranceCostDetails | None", "The insurance block. None when there is no insurance."],
+  ] },
+  ItemsCostDetails: { file: WS, py: "pydantic", by: "to_cart_cost_details · " + TCD, doc: "The items block.", fields: [
+    ["gift_wrap_count", "ReportValue", "The gift wrap count."],
+    ["sample_count", "ReportValue", "The free sample count."],
+    ["parcel_count", "ReportValue", "The parcel count."],
+    ["tier", "ReportValue", "The items' price tier, e.g. '2.5*'."],
+    ["cost", "ChargeLine", "The items line: the item count, its rate and its total."],
+  ] },
+  ShippingCostDetails: { file: WS, py: "pydantic", by: "_shipping_details · " + TCD, doc: "The shipping block.", fields: [
+    ["shipping_method", "str", "The shipping method, e.g. 'Express Courier'."],
+    ["tier", "ReportValue", "The shipping price tier, e.g. '3.5*'."],
+    ["cost", "ChargeLine", "The shipping line: its weight, its rate and its total."],
+  ] },
+  InsuranceCostDetails: { file: WS, py: "pydantic", by: "_insurance_details · " + TCD, doc: "The insurance block.", fields: [
+    ["tier", "ReportValue", "The insurance price tier."],
+    ["cost", "ChargeLine", "The insurance line: the insured value, its rate and its total."],
+  ] },
+  ChargeLine: { file: WS, py: "pydantic", by: "_charge_line · " + TCD, doc: "Quantity × rate = line total, as printed.", fields: [
+    ["quantity", "ReportValue", "The line's quantity."],
+    ["unit_price", "ReportValue", "The rate in dollars per unit."],
+    ["line_total", "ReportValue", "The quantity times the rate, rounded to whole dollars."],
+  ] },
+  DiscountReport: { file: WS, py: "pydantic", by: "to_discount_report · " + TCD, doc: "The buckets in dollars, their total and the none-applied sentence.", fields: [
+    ["member", "ReportValue", "Member discount in dollars."],
+    ["volume", "ReportValue", "Volume discount in dollars."],
+    ["clearance", "ReportValue", "Clearance discount in dollars."],
+    ["total", "ReportValue", "The three buckets added. Blank when no discount was applied."],
+    ["none_noted", "bool", "True when every bucket is 0 or blank."],
+    ["note", "str", "'No discounts were applied…'. Empty when a discount was applied."],
+  ] },
+  ReportValue: { file: WS, py: "pydantic", by: "money, rate, number, units, percent, count, years, weight, rating · transform/formatting.py", doc: "A number and how the report prints it. Shown as one cell in the boxes.", fields: [
+    ["value", "float | None", "The number, unrounded. None when the report prints a blank."],
+    ["printed", "str", "The number as the report prints it, e.g. '$278,214'. Empty for a blank."],
+  ] },
+  ReportDate: { file: WS, py: "pydantic", by: "_short_date · " + TCR + "; to_quote_report · " + TSV, doc: "A date and how the report prints it. Shown as one cell in the boxes.", fields: [
+    ["value", "date", "The date."],
+    ["printed", "str", "The date as the report prints it, e.g. '02/03/2026'."],
+  ] },
+  OrderSection: { file: WS, py: "pydantic", change: "moved", by: "invoice_fixed_text · invoice_text.py", doc: "A heading and its paragraphs. Moved here from service/order/document.py.", fields: [
+    ["heading", "str", "The section's heading."],
+    ["paragraphs", "list[str]", "The section's paragraphs, in order."],
+  ] },
+
+  InvoiceFigures: { file: CA, py: "dataclass", by: "build_invoice_figures · " + CA, doc: "The Invoice report's numbers, unrounded, before formatting.", fields: [
+    ["cart", "CartCost", "The order's cart, priced and discounted."],
+    ["handling_fee", "float", "The input, or 0."],
+    ["service_fee", "float", "The input, or 0."],
+    ["invoice_total", "float | None", "discounted_cost + handling fee + service fee. None when unpriced."],
+    ["warranty_years", "float | None", "The input, as typed."],
+  ] },
+  CartCost: { file: CB, py: "dataclass", by: "price_cart · " + CB, doc: "One cart priced line by line, then discounted.", fields: [
+    ["cart", "CartInput", "The input it priced."],
+    ["items", "PricedLine | None", "The items line. None without a known item count."],
+    ["shipping", "PricedLine | None", "The shipping line. None without a known shipping weight."],
+    ["insurance", "PricedLine | None", "The insurance line. None without a known insured value."],
+    ["cart_total", "int | None", "Lines summed in cents, rounded once. None unless every present line has a rate."],
+    ["discount", "DiscountDollars", "The buckets in dollars. Percents are taken of cart_total."],
+    ["discount_total", "float | None", "The buckets added. None when cart_total is None."],
+    ["none_noted", "bool", "True when every input bucket is 0 or blank."],
+    ["discounted_cost", "float | None", "cart_total − discount_total."],
+  ] },
+  PricedLine: { file: CB, py: "dataclass", by: "_priced_line · " + CB, doc: "One line's quantity, rate and dollars.", fields: [
+    ["qty", "float", "The known quantity, over 0."],
+    ["rate", "float | None", "The rate in dollars per unit. None leaves the line unpriced."],
+    ["dollars", "int | None", "qty × rate in cents, rounded to whole dollars."],
+  ] },
+  QuoteFigures: { file: CS, py: "dataclass", by: "build_quote_figures · " + CS, doc: "The Quote report's numbers, unrounded, before formatting.", fields: [
+    ["order", "QuotedOrder", "The order's quantity and prices."],
+    ["bundle_offers", "list[BundleOffer]", "One per Bundle offer, in order."],
+    ["bundle_columns", "QuoteColumns", "Regression, median and average over the Bundle offers."],
+    ["tiered_offers", "list[TieredOffer]", "One per Tiered offer, in order."],
+    ["tiered_columns", "QuoteColumns", "Regression, median and average over the Tiered offers."],
+  ] },
+  QuotedOrder: { file: CS, py: "dataclass", by: "quoted_order · " + CS, doc: "The order's quantity and prices, with their per unit values.", fields: [
+    ["quantity", "float | None", "The input quantity."],
+    ["quoted_total", "float | None", "The input final price."],
+    ["per_unit", "float | None", "quoted_total ÷ quantity."],
+    ["method_price", "float | None", "The input method price."],
+    ["method_price_per_unit", "float | None", "method_price ÷ quantity."],
+  ] },
+  Offer: { file: CS, py: "dataclass", by: "_offer · " + CS, doc: "The figures both methods share for one offer.", fields: [
+    ["offer_name", "str", "The input name."],
+    ["offer_price", "float | None", "The input offer price."],
+    ["net_adjustment", "float | None", "The given price adjustments added. None when none were given."],
+    ["adjusted_offer_price", "float | None", "offer_price + net_adjustment."],
+    ["net_value", "float | None", "Bundle: price − discounted cost − handling − other fees. Tiered: price × share."],
+    ["quantity", "float | None", "The input quantity."],
+    ["per_unit", "float | None", "net_value ÷ quantity."],
+    ["adjusted_net_value", "float | None", "per_unit × the order's quantity."],
+  ] },
+  BundleOffer: { file: CS, py: "dataclass", by: "bundle_offer · " + CS, doc: "A Bundle offer with its cart priced.", fields: [
+    ["offer", "Offer", "The shared offer figures."],
+    ["cart", "CartCost", "The offer's cart, priced and discounted."],
+    ["handling_fee", "float", "The input, or 0."],
+    ["other_fees", "float", "The input, or 0."],
+  ] },
+  TieredOffer: { file: CS, py: "dataclass", by: "tiered_offer · " + CS, doc: "A Tiered offer with its tier share picked.", fields: [
+    ["offer", "Offer", "The shared offer figures."],
+    ["tier_share_pct", "float | None", "listed_tier_price ÷ listed_full_price × 100 when both are known, else the typed percent."],
+  ] },
+  QuoteColumns: { file: CS, py: "dataclass", by: "quote_columns · " + CS, doc: "Statistics for the two columns of a method block.", fields: [
+    ["net_value", "ColumnStatistics", "Over the offers' net values."],
+    ["adjusted_net_value", "ColumnStatistics", "Over the offers' adjusted net values."],
+  ] },
+  ColumnStatistics: { file: CT, py: "dataclass", by: "column_statistics · " + CT, doc: "One column's line, regression value, median and average.", fields: [
+    ["line", "LinearRegression | None", "Value on quantity, over offers with both. None when it cannot fit."],
+    ["regression", "float | None", "The line at the order's quantity."],
+    ["median", "float | None", "The median of the given values."],
+    ["average", "float | None", "The mean of the given values."],
+  ] },
+
+  Address: { kind: "external", ext: "domain/entity/customer.py" },
+  PricingMethodType: { kind: "external", ext: "domain/catalog/enums/pricing.py" },
+  LinearRegression: { kind: "external", ext: "statistics" },
+  date: { kind: "external", ext: "datetime" },
+};
+
+document.head.insertAdjacentHTML("beforeend", `<style>
+.row { display: flex; align-items: center; gap: 6px; min-height: 23px; padding-inline: 6px 8px; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; border-radius: 4px; min-width: 0; }
+.row.x { cursor: pointer; }
+.row.x:hover { background: var(--surface); }
+.row.root { font-weight: 500; }
+.row.doc { font-family: var(--sans); font-size: 11.5px; color: var(--faint); }
+.row.doc .g { font-family: var(--mono); font-size: 12.5px; }
+.car { width: 16px; flex: none; color: var(--faint); font-size: 14px; line-height: 1; text-align: center; }
+.row.x .car { color: var(--accent); }
+.g { color: var(--faint); white-space: pre; }
+.f, .ty { color: var(--muted); }
+.row.root .chip { font-weight: 600; }
+.row.x:hover .chip { border-color: oklch(0.55 0.1 var(--h)); }
+.row[aria-expanded="true"] .chip { box-shadow: 0 0 0 1px oklch(0.5 0.11 var(--h)); }
+.m { color: var(--accent); font-size: 11.5px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; display: inline-block; }
+.d { color: var(--faint); font-family: var(--sans); font-size: 11.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.row > :not(.d) { flex: none; }
+.row.doc > span:last-child { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cnt { margin-left: auto; padding-left: 14px; color: var(--faint); font-size: 11px; font-variant-numeric: tabular-nums; }
+.sep { margin: 8px 12px 4px; padding-top: 6px; border-top: 1px dashed var(--line); font-size: 11px; color: var(--faint); }
+</style>`);
+
+const treeEsc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+for (const t of Object.values(TYPES)) {
+  t.fields = t.fields || [];
+  t.changed = !!t.change || t.fields.some(f => f[3] && (f[3].was || f[3].added));
+}
+
+function typeChip(name) { return chip(name, TYPES[name] && TYPES[name].kind || "model"); }
+function typeHtml(s) { return treeEsc(s).replace(/\b[A-Za-z_][A-Za-z0-9_]*\b/g, w => TYPES[w] ? typeChip(w) : w); }
+function chipCode(html) { return html.replace(/<code>([A-Za-z_][A-Za-z0-9_]*)<\/code>/g, (m, w) => TYPES[w] ? typeChip(w) : m); }
+
+function refOf(typeStr) {
+  const words = String(typeStr).match(/\b[A-Za-z_][A-Za-z0-9_]*\b/g) || [];
+  return words.find(w => TYPES[w] && (TYPES[w].fields.length || TYPES[w].values || TYPES[w].members)) || null;
+}
+function countOf(name) {
+  const t = TYPES[name];
+  if (t.values) return `${t.values.length} values`;
+  if (t.members) return `${t.members.length} members`;
+  return `${t.fields.length} fields`;
+}
+function childrenOf(name) {
+  const t = TYPES[name];
+  if (t.values) return t.values.map(([k, v]) => ({ f: k, ty: "", d: v }));
+  if (t.members) return t.members.map(([label, m]) => ({ f: label, ty: m, d: "" }));
+  return t.fields.map(([f, ty, d, fl]) => ({ f, ty, d, fl: fl || {} }));
+}
+
+function makeNode(item, prefix, last, root) {
+  const node = document.createElement("div");
+  const ref = refOf(item.ty);
+  const fl = item.fl || {};
+  const list = /^list\[/.test(item.ty);
+  const nullable = /\| None/.test(item.ty);
+  const shown = item.ty.replace(/^list\[(.*)\]$/, "$1").replace(/ \| None$/, "");
+  const row = document.createElement("div");
+  row.className = "row" + (root ? " root" : "") + (ref ? " x" : "");
+  row.innerHTML = `<span class="car">${ref ? "▸" : ""}</span><span class="g">${root ? "" : prefix + (last ? "└─ " : "├─ ")}</span>`
+    + (item.f ? `<span class="f">${treeEsc(item.f)}</span>` : "")
+    + (shown ? `<span class="ty">${typeHtml(shown)}</span>` : "")
+    + (list ? `<span class="m">[]</span>` : "")
+    + (nullable ? `<span class="m">?</span>` : "")
+    + (ref && TYPES[ref].changed ? `<i class="dot" title="Changed"></i>` : "")
+    + (fl.opt ? `<span class="fl">optional</span>` : "")
+    + (fl.base ? `<span class="fl">from ${treeEsc(fl.base)}</span>` : "")
+    + (fl.added ? `<span class="fl a">added</span>` : "")
+    + (fl.was ? `<span class="fl a">was ${treeEsc(fl.was)}</span>` : "")
+    + (item.d ? `<span class="d">${treeEsc(item.d)}</span>` : "")
+    + (ref ? `<span class="cnt">${countOf(ref)}</span>` : "");
+  node.appendChild(row);
+  if (!ref) return node;
+  row.tabIndex = 0;
+  row.setAttribute("role", "button");
+  row.setAttribute("aria-expanded", "false");
+  const kids = document.createElement("div");
+  kids.hidden = true;
+  node.appendChild(kids);
+  const childPrefix = root ? "" : prefix + (last ? "   " : "│  ");
+  node.toggle = open => {
+    const want = open ?? kids.hidden;
+    if (want && !kids.childElementCount) {
+      const t = TYPES[ref];
+      if (t.doc) {
+        const doc = document.createElement("div");
+        doc.className = "row doc";
+        doc.innerHTML = `<span class="car"></span><span class="g">${childPrefix}│  </span><span>${treeEsc(t.doc)}</span>`;
+        kids.appendChild(doc);
+      }
+      const items = childrenOf(ref);
+      items.forEach((it, i) => kids.appendChild(makeNode(it, childPrefix, i === items.length - 1, false)));
+    }
+    kids.hidden = !want;
+    row.setAttribute("aria-expanded", String(want));
+    row.querySelector(".car").textContent = want ? "▾" : "▸";
+  };
+  row.addEventListener("click", () => node.toggle());
+  row.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); node.toggle(); }
+    if (e.key === "ArrowRight") node.toggle(true);
+    if (e.key === "ArrowLeft") node.toggle(false);
+  });
+  return node;
+}
+
+function renderTree(el, roots) {
+  el.innerHTML = "";
+  for (const r of roots) {
+    if (r.sep) { el.insertAdjacentHTML("beforeend", `<div class="sep">${treeEsc(r.sep)}</div>`); continue; }
+    const n = makeNode({ f: "", ty: r.t, d: "" }, "", true, true);
+    el.appendChild(n);
+    n.toggle(true);
+  }
+}
+
+function openLevel(el) {
+  const closed = [];
+  const walk = parent => {
+    for (const n of parent.children) {
+      if (!n.toggle) continue;
+      const kids = n.children[1];
+      if (kids.hidden) closed.push(n); else walk(kids);
+    }
+  };
+  walk(el);
+  closed.forEach(n => n.toggle(true));
+}
+
+document.head.insertAdjacentHTML("beforeend", `<style>
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: minmax(0, 1fr); gap: 12px; min-width: 0; height: max(480px, calc(100vh - var(--stage-top, 197px))); }
+.mapcard { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; min-width: 0; font-family: var(--mono); font-size: 11.5px; }
+.crumbs button { border: 0; background: transparent; padding: 1px 4px; border-radius: 4px; cursor: pointer; color: var(--muted); }
+.crumbs button:hover { background: var(--surface); color: var(--ink); }
+.crumbs button:last-child { color: var(--ink); font-weight: 500; cursor: default; }
+.crumbs i { font-style: normal; color: var(--faint); }
+.tools { display: flex; align-items: center; gap: 8px; }
+.tools .seg button { padding: 2px 8px; font-size: 11.5px; }
+.tools > span { font-size: 11.5px; color: var(--faint); }
+.map { position: relative; min-height: 0; margin: 6px; overflow: hidden; }
+.status { padding: 6px 12px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); min-height: 30px; display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+.status .p { font-family: var(--mono); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; max-width: 60%; }
+.status .d { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.bx, .lf { position: absolute; overflow: hidden; border-radius: 4px; cursor: pointer; }
+.bx { border: 1px solid var(--line); background: var(--panel); }
+.bx.g { background: var(--surface); }
+.bx.g.fo { background: var(--panel); border-style: dashed; }
+.bx.root { border: 0; background: transparent; cursor: default; }
+.bx.t { --bgl: 0.968; background: oklch(var(--bgl) 0.022 var(--h)); border-color: oklch(0.8 0.06 var(--h)); }
+.bx.t.alt { --bgl: 0.94; }
+.hd { height: 18px; display: flex; align-items: center; gap: 5px; padding: 0 5px; white-space: nowrap; font-family: var(--mono); font-size: 11.5px; line-height: 18px; overflow: hidden; }
+.hd .fn { color: var(--muted); flex: none; }
+.hd .tn { font-weight: 500; flex: none; }
+.bx.t > .hd .tn { color: oklch(0.36 0.12 var(--h)); }
+.bx.g > .hd { font-family: var(--sans); font-size: 12px; font-weight: 600; }
+.bx.g > .hd .sm { font-family: var(--mono); font-weight: 400; color: var(--faint); font-size: 11px; }
+.hd .mk { color: var(--accent); font-size: 11px; flex: none; }
+.hd .cnt { margin-left: auto; padding-left: 6px; color: var(--faint); font-size: 10.5px; flex: none; }
+.lf { background: var(--surface); border: 1px solid var(--line); padding: 2px 5px; font-family: var(--mono); line-height: 14px; }
+.lf .fn { display: block; font-size: 11px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lf .ty { display: block; font-size: 10.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lf.atom { background: oklch(0.975 0.018 var(--h)); border-color: oklch(0.82 0.05 var(--h)); }
+.lf.atom .ty { color: oklch(0.42 0.1 var(--h)); }
+.lf.val { border-style: dashed; }
+.lf.tiny { padding: 0; }
+.bx.hot, .lf.hot { outline: 2px solid var(--accent); outline-offset: -2px; z-index: 2; }
+.bx.root.hot { outline: 0; }
+:root[data-mode="dark"] .bx.t { --bgl: 0.25; background: oklch(var(--bgl) 0.035 var(--h)); border-color: oklch(0.42 0.06 var(--h)); }
+:root[data-mode="dark"] .bx.t.alt { --bgl: 0.21; }
+:root[data-mode="dark"] .bx.t > .hd .tn { color: oklch(0.88 0.08 var(--h)); }
+:root[data-mode="dark"] .lf.atom { background: oklch(0.28 0.04 var(--h)); border-color: oklch(0.42 0.06 var(--h)); }
+:root[data-mode="dark"] .lf.atom .ty { color: oklch(0.85 0.07 var(--h)); }
+.side { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; }
+.side-b { overflow-y: auto; min-height: 0; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+.side-b > * { flex: none; }
+.side h2 { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.side .chip { cursor: pointer; }
+.side .meta { display: grid; gap: 2px; font-family: var(--mono); font-size: 11px; color: var(--muted); word-break: break-word; }
+.side .meta i { font-style: normal; color: var(--faint); }
+.side p { margin: 0; line-height: 1.5; }
+.side table { font-size: 11.5px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; border-collapse: separate; border-spacing: 0; overflow: hidden; }
+.side td { padding: 5px 8px; white-space: normal; text-align: left; }
+.side td.fname { font-family: var(--mono); font-size: 11.5px; }
+.side td .ftype { display: block; margin-top: 2px; color: var(--faint); font-family: var(--mono); font-size: 11px; }
+.side td .ftype .chip { font-size: 10.5px; line-height: 15px; padding: 0 4px; }
+.side td .fdesc { display: block; margin-top: 2px; color: var(--muted); }
+.side tr.on td { background: var(--accent-soft); }
+.side .sec { font-size: 11px; color: var(--faint); font-family: var(--mono); }
+.side .grp { display: grid; gap: 5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.btn { align-self: flex-start; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 3px 9px; font-size: 12px; cursor: pointer; }
+.btn:hover { border-color: var(--faint); }
+@media (max-width: 960px) {
+  .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; height: auto; }
+  .map { height: 520px; }
+  .side-b { max-height: 560px; }
+}
+</style>`);
+
+function renderBoxes(host, opts) {
+  const { title = "Root", groups, index = [], atoms = [], src = "" } = opts;
+  const ATOMS = new Set(atoms);
+  const isClass = n => TYPES[n] && TYPES[n].kind !== "external";
+  const classNames = Object.keys(TYPES).filter(isClass);
+  host.innerHTML = `<div class="stage">
+    <div class="pane mapcard">
+      <div class="pane-h"><nav class="crumbs" aria-label="Zoom path"></nav>
+        <div class="tools"><span>Depth</span><div class="seg depth" role="radiogroup" aria-label="Depth">
+          ${[2, 3, 4, 99].map(d => `<button type="button" role="radio" data-depth="${d}" aria-checked="${d === 2}">${d === 99 ? "All" : d}</button>`).join("")}
+        </div></div></div>
+      <div class="map"></div>
+      <div class="status"></div>
+    </div>
+    <aside class="pane side">
+      <div class="pane-h"><span><b class="side-title"></b></span><span class="side-count"></span></div>
+      <div class="side-b"></div>
+    </aside></div>`;
+  const $ = s => host.querySelector(s);
+  const mapEl = $(".map"), statusEl = $(".status"), sideEl = $(".side-b"), crumbsEl = $(".crumbs");
+
+  const boxRef = ty => { const r = refOf(ty); return r && !ATOMS.has(r) ? r : null; };
+  const atomRef = ty => { const r = refOf(ty); return r && ATOMS.has(r) ? r : null; };
+  const weigh = n => {
+    n.w = n.kids ? n.kids.reduce((s, k) => s + k.w, 1) : 1;
+    n.l = n.kids ? n.kids.reduce((s, k) => s + k.l, 0) : 1;
+    return n;
+  };
+  const kidsOf = name => {
+    const t = TYPES[name];
+    if (t.values) return t.values.map(([k, d]) => weigh({ f: k, ty: "", d, owner: name, val: true }));
+    if (t.members) return t.members.map(([label, m]) => fieldNode(label, m, TYPES[m].doc, name));
+    return t.fields.map(([f, ty, d]) => fieldNode(f, ty, d, name));
+  };
+  const fieldNode = (f, ty, d, owner) => {
+    const n = { f, ty, d, owner };
+    const r = boxRef(ty);
+    if (r) { n.type = r; n.kids = kidsOf(r); } else n.atom = atomRef(ty);
+    return weigh(n);
+  };
+  const typeNode = name => weigh({ f: "", ty: name, type: name, kids: kidsOf(name) });
+  const groupNode = g => Array.isArray(g)
+    ? weigh({ group: g[0], sm: g[1], kids: g[2].map(typeNode) })
+    : weigh({ group: g.folder, sm: g.sm, folder: true, kids: g.groups.map(groupNode) });
+  const ROOT = weigh({ group: title, root: true, kids: groups.map(groupNode) });
+
+  const worst = (row, s) => {
+    const sum = row.reduce((t, r) => t + r.a, 0);
+    const mx = Math.max(...row.map(r => r.a)), mn = Math.min(...row.map(r => r.a));
+    return Math.max((s * s * mx) / (sum * sum), (sum * sum) / (s * s * mn));
+  };
+  const squarify = (items, x, y, w, h) => {
+    const out = [];
+    const total = items.reduce((s, n) => s + n.w, 0);
+    if (!total || w <= 0 || h <= 0) return out;
+    const scale = (w * h) / total;
+    let rest = items.map(n => ({ n, a: n.w * scale })).sort((p, q) => q.a - p.a);
+    while (rest.length) {
+      const short = Math.min(w, h);
+      const row = [rest[0]];
+      let i = 1;
+      while (i < rest.length && worst([...row, rest[i]], short) <= worst(row, short)) row.push(rest[i++]);
+      const sum = row.reduce((s, r) => s + r.a, 0);
+      if (w >= h) {
+        const cw = sum / h;
+        let yy = y;
+        for (const r of row) { const ih = r.a / cw; out.push([r.n, x, yy, cw, ih]); yy += ih; }
+        x += cw; w -= cw;
+      } else {
+        const rh = sum / w;
+        let xx = x;
+        for (const r of row) { const iw = r.a / rh; out.push([r.n, xx, y, iw, rh]); xx += iw; }
+        y += rh; h -= rh;
+      }
+      rest = rest.slice(row.length);
+    }
+    return out;
+  };
+  const columns = (items, x, y, w, h) => {
+    const total = items.reduce((s, n) => s + n.w, 0);
+    let xx = x;
+    return items.map(n => { const cw = (w * n.w) / total; const r = [n, xx, y, cw, h]; xx += cw; return r; });
+  };
+
+  const HEAD = 18, PAD = 3, GAP = 1.5;
+  let path = [ROOT], maxDepth = 2, focus = null, hot = null;
+  const backStack = [], forwardStack = [];
+  const marks = ty => (/^list\[/.test(ty) ? `<span class="mk">[]</span>` : "") + (/\| None$/.test(ty) ? `<span class="mk">?</span>` : "");
+  const nodeLabel = n => n.group ? n.group : n.type ? (n.f ? n.f + ": " : "") + n.type : n.f;
+
+  function drawNode(n, x, y, w, h, depth) {
+    const el = document.createElement("div");
+    el._n = n;
+    let style = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
+    if (!n.kids) {
+      el.className = "lf" + (n.atom ? " atom" : "") + (n.val ? " val" : "");
+      if (n.atom) style += chipStyle(n.atom);
+      if (w >= 26 && h >= 13) {
+        const ty = n.val ? "" : n.ty;
+        el.innerHTML = `<span class="fn">${treeEsc(n.f)}</span>` + (ty && h >= 30 ? `<span class="ty">${treeEsc(ty)}</span>` : "");
+      } else el.classList.add("tiny");
+      el.style.cssText = style;
+      return el;
+    }
+    const top = depth === 0 && n.root;
+    el.className = top ? "bx root" : n.folder ? "bx g fo" : n.group ? "bx g" : "bx t" + (depth % 2 ? " alt" : "");
+    if (n.type) style += chipStyle(n.type);
+    el.style.cssText = style;
+    const head = top ? 0 : HEAD;
+    const iw = w - 2 - 2 * PAD, ih = h - 2 - head - PAD;
+    const open = depth < maxDepth && iw >= 24 && ih >= 14;
+    if (!top) {
+      const inner = n.group
+        ? `<span class="tn">${treeEsc(n.group)}</span><span class="sm">${treeEsc(n.sm || "")}</span>`
+        : (n.f ? `<span class="fn">${treeEsc(n.f)}</span>` : "") + `<span class="tn">${treeEsc(n.type)}</span>` + marks(n.ty);
+      el.innerHTML = `<div class="hd">${inner}<span class="cnt">${open ? "" : n.l}</span></div>`;
+    }
+    if (open) {
+      const lay = top ? columns : squarify;
+      for (const [k, cx, cy, cw, ch] of lay(n.kids, PAD, top ? PAD : head, iw, ih)) {
+        el.appendChild(drawNode(k, cx + GAP, cy + GAP, Math.max(0, cw - 2 * GAP), Math.max(0, ch - 2 * GAP), depth + (n.folder ? 0 : 1)));
+      }
+    }
+    return el;
+  }
+
+  function draw() {
+    const W = mapEl.clientWidth, H = mapEl.clientHeight;
+    if (!W || !H) return;
+    mapEl.innerHTML = "";
+    hot = null;
+    mapEl.appendChild(drawNode(path[path.length - 1], 0, 0, W, H, 0));
+    crumbsEl.innerHTML = path.map((n, i) => `${i ? "<i>›</i>" : ""}<button type="button" data-i="${i}">${treeEsc(nodeLabel(n))}</button>`).join("");
+  }
+  function go(nextPath, nextFocus) {
+    backStack.push({ path, focus });
+    forwardStack.length = 0;
+    path = nextPath; focus = nextFocus;
+    draw(); drawSide();
+  }
+  function step(from, to) {
+    if (!from.length) return;
+    to.push({ path, focus });
+    ({ path, focus } = from.pop());
+    draw(); drawSide();
+  }
+  const goBack = () => step(backStack, forwardStack);
+  const goForward = () => step(forwardStack, backStack);
+  function zoomTo(i) {
+    if (i < 0 || i >= path.length - 1) return;
+    const n = path[i];
+    go(path.slice(0, i + 1), n.type ? { type: n.type } : null);
+  }
+  function openType(name) {
+    if (!isClass(name)) return;
+    go([ROOT, typeNode(name)], { type: name });
+  }
+  const chainOf = el => {
+    const out = [];
+    for (let e = el; e && e !== mapEl; e = e.parentElement) if (e._n) out.unshift(e._n);
+    return out;
+  };
+  const DEFAULT_STATUS = `<span class="d">Click a box to zoom in. Esc goes out. Mouse back and forward retrace your steps. Click a cell to see its field.</span>`;
+  function setStatus(el) {
+    if (!el) { statusEl.innerHTML = DEFAULT_STATUS; return; }
+    const n = el._n;
+    const p = [...path.slice(0, -1), ...chainOf(el)].filter(x => !x.root).map(nodeLabel).join(" › ");
+    const d = n.group ? n.sm || "" : n.d || (n.type && TYPES[n.type].doc) || "";
+    statusEl.innerHTML = `<span class="p">${treeEsc(p || title)}</span><span class="d">${treeEsc(d)}</span>`;
+  }
+
+  function usedIn(name) {
+    const out = [];
+    for (const [owner, t] of Object.entries(TYPES)) {
+      if (!isClass(owner)) continue;
+      for (const [f, ty, , fl] of t.fields || []) if (refOf(ty) === name && !(fl && fl.base)) out.push([owner, f]);
+      for (const [label, m] of t.members || []) if (m === name) out.push([owner, label]);
+    }
+    return out;
+  }
+  function drawSide() {
+    const titleEl = $(".side-title"), countEl = $(".side-count");
+    sideEl.scrollTop = 0;
+    if (!focus) {
+      titleEl.textContent = "All classes";
+      countEl.textContent = `${classNames.length}`;
+      sideEl.innerHTML = `<div class="legend" style="display:grid;gap:4px">
+          <span>A box is a class. A cell is a field.</span>
+          <span>Size is the number of fields a box holds, down to the last level.</span>
+          ${atoms.length ? `<span>${atoms.map(a => chip(a)).join(" ")} cells: one value, not opened.</span>` : ""}
+          <span>Dashed cell: an enum value. <span style="color:var(--accent)">[]</span> list. <span style="color:var(--accent)">?</span> can be None.</span>
+        </div>`
+        + index.map(([label, file, names]) => `<div class="grp"><div class="sec">${treeEsc(label)} · ${treeEsc(file)} · ${names.length}</div><div class="chips">${names.map(typeChip).join("")}</div></div>`).join("");
+      return;
+    }
+    const name = focus.type;
+    const t = TYPES[name];
+    titleEl.textContent = name;
+    const rows = t.values ? t.values.map(([k, d]) => [k, "", d, {}])
+      : t.members ? t.members.map(([label, m]) => [label, m, TYPES[m].doc, {}]) : t.fields;
+    countEl.textContent = `${rows.length} ${t.values ? "values" : t.members ? "members" : "fields"}`;
+    const used = usedIn(name);
+    const extendedBy = classNames.filter(n => TYPES[n].base === name);
+    sideEl.innerHTML = `
+      <h2>${typeChip(name)}${t.py ? `<span class="fl">${treeEsc(t.py)}</span>` : ""}${t.change ? `<span class="fl a">${treeEsc(t.change)}</span>` : ""}</h2>
+      <div class="meta">
+        ${t.file ? `<span><i>file </i>${treeEsc(src + t.file)}</span>` : ""}
+        ${t.by ? `<span><i>built by </i>${treeEsc(t.by)}</span>` : ""}
+        ${t.base ? `<span><i>extends </i>${typeChip(t.base)}</span>` : ""}
+      </div>
+      ${t.doc ? `<p>${treeEsc(t.doc)}</p>` : ""}
+      <table><tbody>${rows.map(([f, ty, d, fl]) => `<tr${focus.field === f ? ' class="on"' : ""}><td class="fname">${treeEsc(f)}${fl && fl.base ? ` <span class="fl">from ${treeEsc(fl.base)}</span>` : ""}${ty ? `<span class="ftype">${typeHtml(ty)}</span>` : ""}<span class="fdesc">${treeEsc(d || "")}</span></td></tr>`).join("")}</tbody></table>
+      ${used.length ? `<div class="grp"><div class="sec">Used in · ${used.length}</div><div class="chips">${used.map(([o, f]) => `<span>${typeChip(o)}<span class="sec"> .${treeEsc(f)}</span></span>`).join("")}</div></div>` : ""}
+      ${extendedBy.length ? `<div class="grp"><div class="sec">Extended by</div><div class="chips">${extendedBy.map(typeChip).join("")}</div></div>` : ""}
+      <button type="button" class="btn" data-home>All classes</button>`;
+    const on = sideEl.querySelector("tr.on");
+    if (on) on.scrollIntoView({ block: "nearest" });
+  }
+
+  crumbsEl.addEventListener("click", e => { const b = e.target.closest("button"); if (b) zoomTo(+b.dataset.i); });
+  mapEl.addEventListener("mouseover", e => {
+    const el = e.target.closest(".bx, .lf");
+    if (el === hot) return;
+    if (hot) hot.classList.remove("hot");
+    hot = el;
+    if (hot) hot.classList.add("hot");
+    setStatus(hot && !hot.classList.contains("root") ? hot : null);
+  });
+  mapEl.addEventListener("mouseleave", () => { if (hot) hot.classList.remove("hot"); hot = null; setStatus(null); });
+  mapEl.addEventListener("click", e => {
+    const el = e.target.closest(".bx, .lf");
+    if (!el) return;
+    const n = el._n;
+    if (!n.kids) { go(path, { type: n.owner, field: n.f }); return; }
+    const chain = chainOf(el);
+    if (chain.length < 2) return;
+    go(path.concat(chain.slice(1)), n.type ? { type: n.type } : null);
+  });
+  document.addEventListener("keydown", e => {
+    if (!host.offsetParent) return;
+    if (e.key === "Escape") zoomTo(path.length - 2);
+    else if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); goBack(); }
+    else if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); goForward(); }
+  });
+  const isSideButton = e => e.button === 3 || e.button === 4;
+  document.addEventListener("mousedown", e => { if (isSideButton(e) && host.offsetParent) e.preventDefault(); });
+  document.addEventListener("mouseup", e => {
+    if (!isSideButton(e) || !host.offsetParent) return;
+    e.preventDefault();
+    e.button === 3 ? goBack() : goForward();
+  });
+  sideEl.addEventListener("click", e => {
+    if (e.target.closest("[data-home]")) { go([ROOT], null); return; }
+    const c = e.target.closest(".chip");
+    if (c) openType(c.textContent);
+  });
+  host.querySelectorAll(".depth button").forEach(b => b.addEventListener("click", () => {
+    maxDepth = +b.dataset.depth;
+    host.querySelectorAll(".depth button").forEach(x => x.setAttribute("aria-checked", String(x === b)));
+    draw();
+  }));
+
+  let raf = 0;
+  new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); }).observe(mapEl);
+  statusEl.innerHTML = DEFAULT_STATUS;
+  draw();
+  drawSide();
+  return { openType, zoomTo, goBack, goForward };
+}
+
+
+renderBoxes(document.getElementById("boxes"), {
+  title: "ORD-12",
+  src: "src/services/shop/src/",
+  atoms: ["ReportValue", "ReportDate"],
+  groups: [
+    { folder: "domain/entity/order/", sm: "pydantic", groups: [
+      { folder: "invoice_report/", groups: [
+        ["input.py", "", ["InvoiceReportInput"]],
+        ["output.py", "", ["InvoiceReport", "SkippedReport"]],
+      ] },
+      { folder: "quote_report/", groups: [
+        ["input.py", "", ["QuoteReportInput"]],
+        ["output.py", "", ["QuoteReport"]],
+      ] },
+    ] },
+    { folder: "service/order/pricing/", sm: "dataclasses", groups: [
+      { folder: "invoice_report/", groups: [["figures.py", "", ["InvoiceFigures"]]] },
+      { folder: "quote_report/", groups: [["figures.py", "", ["QuoteFigures"]]] },
+    ] },
+  ],
+  index: [
+    ["Invoice input", "order/invoice_report/input.py", ["InvoiceReportInput", "OrderStatus"]],
+    ["Quote input", "order/quote_report/input.py", ["QuoteReportInput", "BundleOfferInput", "TieredOfferInput", "OfferInput", "PriceAdjustmentsInput"]],
+    ["Invoice output", "order/invoice_report/output.py", ["InvoiceReport", "SkippedReport", "InvoiceSkipReason"]],
+    ["Quote output", "order/quote_report/output.py", ["QuoteReport", "PricingMethodBlock", "MethodPrice", "SummaryRow", "OfferRow", "BundleOfferDetails", "TieredPriceDetail"]],
+    ["Shared by both reports", "order/order.py", ["CartInput", "DiscountInput", "DiscountDollars", "DiscountPercents", "CartCostDetails", "ItemsCostDetails", "ShippingCostDetails", "InsuranceCostDetails", "ChargeLine", "DiscountReport", "ReportValue", "ReportDate", "RegressionEquation", "OrderSection"]],
+    ["Invoice figures", "pricing/invoice_report/", ["InvoiceFigures"]],
+    ["Quote figures", "pricing/quote_report/", ["QuoteFigures", "QuotedOrder", "Offer", "BundleOffer", "TieredOffer", "QuoteColumns", "ColumnStatistics"]],
+    ["Shared figures", "pricing/cart.py", ["CartCost", "PricedLine"]],
+  ],
+});
+document.getElementById("ncls").textContent = Object.keys(TYPES).filter(n => TYPES[n].kind !== "external").length;
+const treeEl = document.getElementById("tree");
+renderTree(treeEl, [
+  { sep: "order/invoice_report/input.py" }, { t: "InvoiceReportInput" },
+  { sep: "order/invoice_report/output.py" }, { t: "InvoiceReport" }, { t: "SkippedReport" },
+  { sep: "order/quote_report/input.py" }, { t: "QuoteReportInput" },
+  { sep: "order/quote_report/output.py" }, { t: "QuoteReport" },
+  { sep: "pricing/invoice_report/figures.py" }, { t: "InvoiceFigures" },
+  { sep: "pricing/quote_report/figures.py" }, { t: "QuoteFigures" },
+]);
+document.getElementById("more").addEventListener("click", () => openLevel(treeEl));
+</script>

@@ -1,0 +1,684 @@
+<title>Quote Report DTOs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one screen, light by default with a dark picker — header with segmented views; Interfaces = input tree | builder | output tree, rules strip below; rows expand in place, recursively */
+:root {
+  --bg: #f7f7f4;
+  --panel: #eeede7;
+  --surface: #ffffff;
+  --ink: #1a1914;
+  --muted: #4f4d46;
+  --faint: #7d7b73;
+  --line: #d3d1c8;
+  --accent: #c93f00;
+  --accent-soft: #f8dccb;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+:root[data-mode="dark"] {
+  --bg: #14120b; --panel: #1b1912; --surface: #252219; --ink: #efeeea; --muted: #b3b1a9; --faint: #7f7d75; --line: #353229;
+  --accent: #ff7a3d; --accent-soft: #3d2416; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.45 var(--sans); overflow: hidden; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+
+.app { height: 100%; max-width: 1480px; margin: 0 auto; display: grid; grid-template-rows: auto minmax(0, 1fr);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding-block: 14px 12px; border-bottom: 1px solid var(--line); }
+.ttl { display: grid; gap: 2px; min-width: 0; }
+h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.sub { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.sub b { color: var(--ink); font-weight: 500; }
+.right { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.sib { font-size: 12px; color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+.sib:hover { color: var(--ink); }
+.seg { display: inline-flex; padding: 2px; gap: 2px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.seg button { border: 0; background: transparent; padding: 4px 11px; border-radius: 6px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.seg button[aria-checked="true"], .seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+
+main { min-height: 0; }
+.view { height: 100%; min-height: 0; padding-block: 12px; display: grid; gap: 12px; }
+#v-interfaces { grid-template-rows: minmax(0, 1fr) auto; }
+.trees { display: grid; grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr); gap: 10px; min-height: 0; }
+.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; min-width: 0; }
+.pane-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
+.pane-h .acts { display: flex; gap: 4px; }
+.pane-h .acts button { border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 1px 8px; font-size: 11px; color: var(--muted); cursor: pointer; }
+.pane-h .acts button:hover { color: var(--ink); }
+.pane-b { overflow: auto; padding: 8px 4px 10px; }
+.bridge { display: grid; align-content: center; justify-items: center; gap: 6px; text-align: center; color: var(--muted); }
+.bridge svg { width: 20px; height: 14px; }
+.bridge span { font-family: var(--mono); font-size: 10.5px; line-height: 1.4; }
+.bridge b { color: var(--ink); font-weight: 500; }
+
+.row { display: flex; align-items: center; gap: 6px; min-height: 23px; padding-inline: 6px 8px; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; border-radius: 4px; min-width: 0; }
+.row.x { cursor: pointer; }
+.row.x:hover { background: var(--surface); }
+.row.root { font-weight: 500; }
+.row.doc { font-family: var(--sans); font-size: 11.5px; color: var(--faint); }
+.row.doc .g { font-family: var(--mono); font-size: 12.5px; }
+.car { width: 16px; flex: none; color: var(--faint); font-size: 14px; line-height: 1; text-align: center; }
+.row.x .car { color: var(--accent); }
+.g { color: var(--faint); white-space: pre; }
+.f { color: var(--muted); }
+.ty { color: var(--muted); }
+.chip { display: inline-block; font-weight: 500; font-size: 12px; line-height: 17px; padding: 0 6px; border-radius: 4px;
+  --bl: 0.93; --bc: 0.04; --dl: 0.31;
+  background: oklch(var(--bl) var(--bc) var(--h)); color: oklch(0.33 0.11 var(--h)); border: 1px solid oklch(calc(var(--bl) - 0.12) calc(var(--bc) + 0.03) var(--h)); }
+:root[data-mode="dark"] .chip { background: oklch(var(--dl) 0.06 var(--h)); color: oklch(0.92 0.065 var(--h)); border-color: oklch(calc(var(--dl) + 0.13) 0.075 var(--h)); }
+.chip.k-enum { border-style: dashed; }
+.chip.k-union { border-style: dotted; border-width: 1.5px; }
+.chip.k-external { background: transparent; }
+.row.root .chip { font-weight: 600; }
+.row.x:hover .chip { border-color: oklch(0.55 0.1 var(--h)); }
+.row[aria-expanded="true"] .chip { box-shadow: 0 0 0 1px oklch(0.5 0.11 var(--h)); }
+.rules .chip, .renames .chip { font-size: 10.5px; line-height: 15px; padding: 0 4px; }
+.sw { width: 9px; height: 9px; border-radius: 2px; background: currentColor; display: inline-block; }
+.m { color: var(--accent); font-size: 11.5px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; display: inline-block; }
+.fl { font-family: var(--sans); font-size: 10.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 6px; background: var(--surface); }
+.fl.a { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-soft); }
+.d { color: var(--faint); font-family: var(--sans); font-size: 11.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.row > :not(.d) { flex: none; }
+.row.doc > span:last-child { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cnt { margin-left: auto; padding-left: 14px; color: var(--faint); font-size: 11px; font-variant-numeric: tabular-nums; }
+.sep { margin: 8px 12px 4px; padding-top: 6px; border-top: 1px dashed var(--line); font-size: 11px; color: var(--faint); }
+
+.strip { display: grid; gap: 10px; }
+.rules { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.rules li { padding: 9px 12px; display: grid; gap: 2px; align-content: start; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+.rules li:nth-child(4n) { border-right: 0; }
+.rules li:nth-last-child(-n+4) { border-bottom: 0; }
+.rules b { font-size: 12px; font-weight: 600; }
+.rules span { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+.rules code { font-family: var(--mono); font-size: 11px; color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.legend > span { display: inline-flex; gap: 5px; align-items: center; }
+
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; align-content: start; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+.card .pane-h b { color: var(--ink); font-weight: 500; }
+.card .body { overflow: auto; }
+.kv { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 9px 12px; font-size: 12px; }
+.kv div { display: grid; }
+.kv i { font-style: normal; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+.kv span { font-family: var(--mono); font-size: 12.5px; }
+.span2 { grid-column: 1 / -1; }
+table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 5px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+th { font-weight: 500; font-size: 11px; color: var(--muted); }
+th:first-child, td:first-child { text-align: left; }
+td.l, th.l { text-align: left; }
+td.n { color: var(--faint); width: 1%; font-family: var(--mono); font-size: 11px; }
+td.mono { font-family: var(--mono); font-size: 11.5px; }
+td.wrap { white-space: normal; }
+td.blank { color: var(--faint); }
+td .s { color: var(--faint); font-size: 11px; }
+tr.sum td { color: var(--muted); }
+tr.tot td { font-weight: 600; border-top: 1px solid var(--ink); }
+.foot { padding: 7px 12px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); }
+.renames { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 2px 18px; padding: 10px 12px; font-family: var(--mono); font-size: 11.5px; }
+.renames span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.renames s { color: var(--faint); text-decoration: none; }
+.renames em { color: var(--faint); font-style: normal; }
+
+@media (max-width: 900px), (max-height: 600px) {
+  html, body { height: auto; }
+  body { overflow: auto; }
+  .app { height: auto; }
+  .view { height: auto; }
+  .trees { grid-template-columns: minmax(0, 1fr); }
+  .pane-b { max-height: 70vh; }
+  .bridge svg { transform: rotate(90deg); }
+  .rules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rules li { border-right: 1px solid var(--line) !important; border-bottom: 1px solid var(--line) !important; }
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="ttl"><h1 id="h1"></h1><span class="sub" id="sub"></span></div>
+    <div class="right">
+      <a class="sib" id="sib" target="_blank" rel="noopener"></a>
+      <div class="seg" role="radiogroup" aria-label="Theme"><button type="button" role="radio" data-mode="light" aria-checked="true">Light</button><button type="button" role="radio" data-mode="dark" aria-checked="false">Dark</button></div>
+      <nav class="seg" role="tablist" aria-label="Views">
+        <button type="button" role="tab" data-view="interfaces" aria-selected="true">Interfaces</button>
+        <button type="button" role="tab" data-view="sample" aria-selected="false">Built sample</button>
+        <button type="button" role="tab" data-view="changes" aria-selected="false">Changes</button>
+        <button type="button" role="tab" data-view="tests" aria-selected="false">Tests</button>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section class="view" id="v-interfaces">
+      <div class="trees">
+        <div class="pane"><div class="pane-h"><span>Input</span><span class="acts"><button type="button" data-act="open" data-pane="tree-in">Expand level</button><button type="button" data-act="close" data-pane="tree-in">Collapse</button></span></div><div class="pane-b" id="tree-in"></div></div>
+        <div class="bridge" aria-hidden="true">
+          <svg viewBox="0 0 20 14"><path d="M1 7 H17 M12 2 L18 7 L12 12" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+        </div>
+        <div class="pane"><div class="pane-h"><span>Output · <span id="builder" class="mono" style="font-family:var(--mono)"></span></span><span class="acts"><button type="button" data-act="open" data-pane="tree-out">Expand level</button><button type="button" data-act="close" data-pane="tree-out">Collapse</button></span></div><div class="pane-b" id="tree-out"></div></div>
+      </div>
+      <div class="strip">
+        <ol class="rules" id="rules"></ol>
+        <div class="legend">
+          <span>each type has its own color</span>
+          <span><b class="chip" style="--h:250">Model</b></span>
+          <span><b class="chip k-enum" style="--h:300">Enum</b></span>
+          <span><b class="chip k-union" style="--h:0">Union</b></span>
+          <span><b class="chip k-external" style="--h:60">External</b></span>
+          <span><span class="car" style="color:var(--accent)">▸</span>click to open, any depth</span>
+          <span><i class="dot"></i>type changed in the chain</span>
+          <span><span class="m">[]</span>list</span>
+          <span><span class="m">?</span>may be None</span>
+          <span><span class="fl">optional</span>defaults to None</span>
+          <span><span class="fl a">was x</span>renamed</span>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="v-sample" hidden></section>
+    <section class="view" id="v-changes" hidden></section>
+    <section class="view" id="v-tests" hidden></section>
+  </main>
+</div>
+
+<script>
+const INV = "Invoice DTOs";
+const PAGE = {
+  title: "Quote Report DTOs",
+  sub: "order.py · tip <b>qrvtwmzk</b> a71e09bd · 13 models, plus Invoice types",
+  builder: "build_quote_report()",
+  sibling: { label: "Invoice DTOs", url: "#" },
+  input: [
+    { t: "QuoteReportInput", kids: [
+      { f: "customer_address", t: "Address" },
+      { f: "pricing_method", t: "PricingMethodType", opt: true, note: "picks the block" },
+      { f: "bundle_offers", t: "BundleOfferInput", list: true, kids: [
+        { f: "extends", t: "OfferInput" },
+        { f: "price_adjustments", t: "PriceAdjustmentsInput" },
+        { f: "cart", t: "CartInput" },
+        { f: "discount", t: "DiscountInput", note: "picked by unit", kids: [
+          { f: '"dollars"', t: "DiscountDollars" },
+          { f: '"percent"', t: "DiscountPercents" },
+        ]},
+      ]},
+      { f: "tiered_offers", t: "TieredOfferInput", list: true, kids: [
+        { f: "extends", t: "OfferInput" },
+        { f: "price_adjustments", t: "PriceAdjustmentsInput" },
+      ]},
+    ]},
+  ],
+  output: [
+    { t: "QuoteReport", kids: [
+      { f: "bundle, tiered", t: "PricingMethodBlock", kids: [
+        { f: "method_price", t: "MethodPrice", opt: true, note: "chosen block only" },
+        { f: "regression, median, average", t: "SummaryRow" },
+        { f: "offers", t: "OfferRow", list: true },
+        { f: "*_equation", t: "RegressionEquation", note: "two per block" },
+      ]},
+      { f: "bundle_details", t: "BundleOfferDetails", list: true, kids: [
+        { f: "discount", t: "DiscountReport" },
+        { f: "cart", t: "CartCostDetails", kids: [
+          { f: "items", t: "ItemsCostDetails" },
+          { f: "shipping", t: "ShippingCostDetails", opt: true },
+          { f: "insurance", t: "InsuranceCostDetails", opt: true },
+        ]},
+      ]},
+      { f: "tiered_price_details", t: "TieredPriceDetail", list: true },
+      { f: "fixed_text", t: "OrderSection", list: true, note: "17 sections" },
+    ]},
+  ],
+  leaves: ["ReportValue", "ReportDate", "ChargeLine"],
+  rules: [
+    ["Method picks the block", "Both blocks are always built. <code>None</code>, <code>Other</code> and <code>Flat</code> complete neither."],
+    ["Blank price line", "Chosen block without <code>method_price</code>: a <code>MethodPrice</code> with two blanks, not None."],
+    ["Shared offer base", "<code>BundleOfferInput</code> and <code>TieredOfferInput</code> extend <code>OfferInput</code>."],
+    ["Strict inputs", "Inputs refuse unknown fields. Nullable input fields default to None."],
+    ["Statistics", "0 offers: blank rows, no equations. 1 offer: its own median and average, no regression."],
+    ["Negative values", "An offer below cost prints <code>-$10,994</code> and stays in the median and average."],
+    ["One net adjustment", "Five adjustments add to one net. None given: blank. No offer price: blank adjusted price."],
+    ["Unpriced offer", "No item rate with percent discount: no note and a blank <code>discount_total</code>."],
+  ],
+  types: {
+    QuoteReportInput: { side: "input", isNew: true, doc: "What the staff entered. Refuses unknown fields.", fields: [
+      ["customer_address", "Address", "Printed under the report's title."],
+      ["order_date", "date", "Required."],
+      ["pricing_method", "PricingMethodType | None", "Bundle or Tiered completes that block.", { opt: true, was: "price_method" }],
+      ["order_quantity", "float | None", "Units in the order.", { opt: true, was: "order_qty" }],
+      ["quoted_total", "float | None", "Final quoted price.", { opt: true, was: "final_price" }],
+      ["method_price", "float | None", "Price from the chosen method.", { opt: true }],
+      ["quote_comment", "str | None", "The note on the quote.", { opt: true, was: "comment" }],
+      ["bundle_offers", "list[BundleOfferInput]", "In order."],
+      ["tiered_offers", "list[TieredOfferInput]", "In order."],
+    ]},
+    OfferInput: { side: "input", isNew: true, change: "added in qrvtwmzk", doc: "The fields both offer types share. Refuses unknown fields.", fields: [
+      ["offer_name", "str", "e.g. 'Starter Bundle'.", { was: "name" }],
+      ["offer_price", "float | None", "None leaves the offer blank.", { opt: true }],
+      ["price_adjustments", "PriceAdjustmentsInput", "Added to the offer price."],
+      ["quantity", "float | None", "Units in the offer.", { opt: true, was: "qty" }],
+    ]},
+    BundleOfferInput: { side: "input", isNew: true, change: "extends OfferInput", doc: "One offer for the Bundle method.", fields: [
+      ["offer_name", "str", "e.g. 'Starter Bundle'.", { base: "OfferInput" }],
+      ["offer_price", "float | None", "None leaves the offer blank.", { opt: true, base: "OfferInput" }],
+      ["price_adjustments", "PriceAdjustmentsInput", "Added to the offer price.", { base: "OfferInput" }],
+      ["quantity", "float | None", "Units in the offer.", { opt: true, base: "OfferInput" }],
+      ["cart", "CartInput", "The offer's cart and rates."],
+      ["discount", "DiscountInput", "Dollars or percents."],
+      ["handling_fee", "float | None", "Handling fee.", { opt: true, was: "handling" }],
+      ["other_fees", "float | None", "Other fees taken off the offer price.", { opt: true }],
+    ]},
+    TieredOfferInput: { side: "input", isNew: true, change: "extends OfferInput", doc: "One offer for the Tiered method.", fields: [
+      ["offer_name", "str", "e.g. 'Starter Bundle'.", { base: "OfferInput" }],
+      ["offer_price", "float | None", "None leaves the offer blank.", { opt: true, base: "OfferInput" }],
+      ["price_adjustments", "PriceAdjustmentsInput", "Added to the offer price.", { base: "OfferInput" }],
+      ["quantity", "float | None", "Units in the offer.", { opt: true, base: "OfferInput" }],
+      ["tier_share_pct", "float | None", "Typed tier share percent, e.g. 100.", { opt: true }],
+      ["listed_tier_price", "float | None", "With listed_full_price, gives the percent before the typed one.", { opt: true }],
+      ["listed_full_price", "float | None", "Listed full price.", { opt: true }],
+    ]},
+    PriceAdjustmentsInput: { side: "input", isNew: true, doc: "Signed dollar adjustments. They add to one net adjustment. Refuses unknown fields.", fields: [
+      ["coupon_adjustment", "float | None", "Coupons.", { opt: true, was: "coupon" }],
+      ["gift_card_adjustment", "float | None", "Gift cards.", { opt: true, was: "gift_card" }],
+      ["promo_code_adjustment", "float | None", "Promo codes.", { opt: true, was: "promo_code" }],
+      ["price_match_adjustment", "float | None", "Price match.", { opt: true, was: "price_match" }],
+      ["store_credit_adjustment", "float | None", "Store credit.", { opt: true, was: "store_credit" }],
+    ]},
+    PricingMethodType: { side: "input", isNew: false, from: "Catalog enum", kind: "enum", doc: "domain/catalog/enums/pricing.py. Only Bundle and Tiered have blocks.", values: [
+      ["Bundle", "completes the Bundle Pricing block"], ["Tiered", "completes the Tiered Pricing block"], ["Other", "completes neither block"], ["Flat", "completes neither block"],
+    ]},
+    Address: { side: "input", isNew: false, kind: "external", doc: "From domain/entity/customer.py. Printed as one line.", fields: [] },
+    CartInput: { side: "input", isNew: false, from: INV, doc: "13 optional fields. Refuses unknown fields.", fields: [
+      ["item_count", "float | None", "Items in the cart.", { opt: true }],
+      ["gift_wrap_count", "float | None", "Printed only.", { opt: true }],
+      ["sample_count", "float | None", "Printed only.", { opt: true }],
+      ["parcel_count", "float | None", "Printed only.", { opt: true }],
+      ["tier", "float | None", "Price tier, 1.0 to 5.0.", { opt: true }],
+      ["item_rate", "float | None", "Item rate, $/item.", { opt: true }],
+      ["shipping_method", "str | None", "e.g. 'Express Courier'.", { opt: true }],
+      ["shipping_kg", "float | None", "Shipping weight.", { opt: true }],
+      ["shipping_tier", "float | None", "Shipping price tier.", { opt: true }],
+      ["shipping_rate", "float | None", "Shipping rate, $/kg.", { opt: true }],
+      ["insured_value", "float | None", "Insured value.", { opt: true }],
+      ["insurance_tier", "float | None", "Insurance price tier.", { opt: true }],
+      ["insurance_rate", "float | None", "Insurance rate, $ per insured $.", { opt: true }],
+    ]},
+    DiscountInput: { side: "input", isNew: false, from: INV, kind: "union", members: [['"dollars"', "DiscountDollars"], ['"percent"', "DiscountPercents"]], doc: 'Annotated[DiscountDollars | DiscountPercents, discriminator="unit"].', fields: [] },
+    DiscountDollars: { side: "input", isNew: false, from: INV, doc: "Buckets in dollars.", fields: [
+      ["unit", 'Literal["dollars"]', "Defaults to 'dollars'."],
+      ["member", "float | None", "Dollars.", { opt: true }],
+      ["volume", "float | None", "Dollars.", { opt: true }],
+      ["clearance", "float | None", "Dollars.", { opt: true }],
+    ]},
+    DiscountPercents: { side: "input", isNew: false, from: INV, doc: "Buckets as percents of the cart total.", fields: [
+      ["unit", 'Literal["percent"]', "Defaults to 'percent'."],
+      ["member", "float | None", "Percent of the cart total.", { opt: true }],
+      ["volume", "float | None", "Percent of the cart total.", { opt: true }],
+      ["clearance", "float | None", "Percent of the cart total.", { opt: true }],
+    ]},
+
+    QuoteReport: { side: "output", isNew: true, doc: "Everything the Quote report prints.", fields: [
+      ["customer_address", "str", "e.g. '12 Harbour Lane, 40213'."],
+      ["order_date", "ReportDate", "e.g. 'February 3, 2026'."],
+      ["quoted_total", "ReportValue", "e.g. '$28,000'.", { was: "final_price" }],
+      ["order_quantity", "ReportValue", "e.g. '440 Units'.", { was: "order_qty" }],
+      ["final_per_unit", "ReportValue", "Quoted total ÷ order quantity, e.g. '$63.64'.", { was: "final_per_qty" }],
+      ["quote_comment", "str", "Empty when not given.", { was: "comment" }],
+      ["bundle", "PricingMethodBlock", "The Bundle Pricing block."],
+      ["tiered", "PricingMethodBlock", "The Tiered Pricing block."],
+      ["bundle_details", "list[BundleOfferDetails]", "One per Bundle offer."],
+      ["tiered_price_details", "list[TieredPriceDetail]", "One per Tiered offer."],
+      ["fixed_text", "list[OrderSection]", "17 sections. Footnote says 'last page'."],
+    ]},
+    PricingMethodBlock: { side: "output", isNew: true, doc: "One method's table, summary rows, notes and lines.", fields: [
+      ["method", "PricingMethodType", "Bundle or Tiered."],
+      ["heading", "str", "'Bundle Pricing' or 'Tiered Pricing'."],
+      ["not_completed_notice", "str | None", "e.g. 'Tiered Pricing Not Completed'."],
+      ["method_price", "MethodPrice | None", "Chosen block only."],
+      ["regression", "SummaryRow", "Simple Regression row."],
+      ["median", "SummaryRow", "Median row."],
+      ["average", "SummaryRow", "Average row."],
+      ["offers", "list[OfferRow]", "Input order."],
+      ["notes", "list[str]", "5 lines for Bundle, 7 for Tiered."],
+      ["net_value_equation", "RegressionEquation", "Net value on quantity."],
+      ["adjusted_net_value_equation", "RegressionEquation", "Labelled 'Price per Unit Value'."],
+    ]},
+    MethodPrice: { side: "output", isNew: true, doc: "The chosen method's price line.", fields: [
+      ["price", "ReportValue", "e.g. '$27,000'."],
+      ["per_unit", "ReportValue", "e.g. '$61.36'. Blank without an order quantity.", { was: "per_qty" }],
+    ]},
+    SummaryRow: { side: "output", isNew: true, doc: "A Regression, Median or Average row.", fields: [
+      ["net_value", "ReportValue", "Net Value column."],
+      ["adjusted_net_value", "ReportValue", "Adj. Net Value column."],
+    ]},
+    RegressionEquation: { side: "output", isNew: true, doc: "A fitted line from statistics.LinearRegression, or none.", fields: [
+      ["slope", "float | None", "Unrounded. None without a line."],
+      ["intercept", "float | None", "Unrounded. None without a line."],
+      ["printed", "str", "e.g. 'y = 48.9x + -3,056'. Empty for none."],
+    ]},
+    OfferRow: { side: "output", isNew: true, doc: "One offer row in a block's table.", fields: [
+      ["offer_name", "str", "Offer name.", { was: "name" }],
+      ["adjusted_offer_price", "ReportValue", "Offer price plus net adjustment.", { was: "adjusted_price" }],
+      ["tier_share_pct", "ReportValue", "e.g. '100.00%'. Blank in Bundle."],
+      ["net_value", "ReportValue", "The offer's net value."],
+      ["quantity", "ReportValue", "e.g. '492 Units'.", { was: "qty" }],
+      ["per_unit", "ReportValue", "e.g. '$79.26'.", { was: "per_qty" }],
+      ["adjusted_net_value", "ReportValue", "$/Unit × order quantity."],
+    ]},
+    BundleOfferDetails: { side: "output", isNew: true, doc: "The cart details block for one Bundle offer.", fields: [
+      ["label", "str", "e.g. 'Offer 1'."],
+      ["offer_name", "str", "Offer name.", { was: "name" }],
+      ["adjusted_offer_price", "ReportValue", "Where the calculation starts.", { was: "adjusted_price" }],
+      ["discounted_cost", "ReportValue", "Cart total less discounts."],
+      ["handling_fee", "ReportValue", "Handling fee.", { was: "handling" }],
+      ["other_fees", "ReportValue", "e.g. '$0'."],
+      ["net_value", "ReportValue", "The offer's net value."],
+      ["per_unit", "ReportValue", "Net value per unit.", { was: "per_qty" }],
+      ["cart_total", "ReportValue", "Cart total.", { was: "total_new" }],
+      ["discount_total", "ReportValue", "e.g. '$0'. Blank when the offer is unpriced.", { added: true }],
+      ["discount", "DiscountReport", "Buckets, total and note."],
+      ["quantity", "ReportValue", "e.g. '492 Units'.", { was: "qty" }],
+      ["offer_price", "ReportValue", "In the adjusted price line."],
+      ["net_adjustment", "ReportValue", "Blank when none given.", { was: "price_adjustment" }],
+      ["cart", "CartCostDetails", "Charge lines per line group."],
+    ]},
+    TieredPriceDetail: { side: "output", isNew: true, doc: "One row of the Tiered price details table.", fields: [
+      ["label", "str", "e.g. 'Offer 1'."],
+      ["offer_name", "str", "Offer name.", { was: "name" }],
+      ["offer_price", "ReportValue", "e.g. '$319,990'."],
+      ["net_adjustment", "ReportValue", "Blank when none given.", { was: "adjustment" }],
+      ["adjusted_offer_price", "ReportValue", "e.g. '319,990', no dollar sign.", { was: "adjusted_price" }],
+    ]},
+    CartCostDetails: { side: "output", isNew: false, from: INV, doc: "Charge details per line group.", fields: [
+      ["items", "ItemsCostDetails", "Always there."],
+      ["shipping", "ShippingCostDetails | None", "None when nothing ships."],
+      ["insurance", "InsuranceCostDetails | None", "None without insurance."],
+    ]},
+    ItemsCostDetails: { side: "output", isNew: false, from: INV, doc: "The items block.", fields: [
+      ["gift_wrap_count", "ReportValue", "e.g. '2'."], ["sample_count", "ReportValue", "e.g. '1'."], ["parcel_count", "ReportValue", "e.g. '2'."],
+      ["tier", "ReportValue", "e.g. '2.5*'."], ["cost", "ChargeLine", "Items line."],
+    ]},
+    ShippingCostDetails: { side: "output", isNew: false, from: INV, doc: "The shipping block.", fields: [
+      ["shipping_method", "str", "e.g. 'Express Courier'."], ["tier", "ReportValue", "e.g. '3.5*'."], ["cost", "ChargeLine", "Shipping line."],
+    ]},
+    InsuranceCostDetails: { side: "output", isNew: false, from: INV, doc: "The insurance block.", fields: [
+      ["tier", "ReportValue", "Price tier."], ["cost", "ChargeLine", "Insurance line."],
+    ]},
+    ChargeLine: { side: "output", isNew: false, from: INV, doc: "One line group's charge line.", fields: [
+      ["quantity", "ReportValue", "e.g. '2257'."], ["unit_price", "ReportValue", "e.g. '$113.18'."], ["line_total", "ReportValue", "e.g. '$255,447'."],
+    ]},
+    DiscountReport: { side: "output", isNew: false, from: INV, doc: "Discounts as printed, always in dollars.", fields: [
+      ["member", "ReportValue", "Dollars."], ["volume", "ReportValue", "Dollars."], ["clearance", "ReportValue", "Dollars."],
+      ["total", "ReportValue", "Blank when none was applied."], ["none_noted", "bool", "Every bucket 0 or blank."],
+      ["note", "str", "'No discounts were applied…' or empty."],
+    ]},
+    ReportValue: { side: "output", isNew: false, from: INV, doc: "A number and how it prints.", fields: [
+      ["value", "float | None", "Unrounded. None for a blank."], ["printed", "str", "Empty for a blank. Negatives lead with '-'."],
+    ]},
+    ReportDate: { side: "output", isNew: false, from: INV, doc: "A date and how it prints.", fields: [
+      ["value", "date", "The date."], ["printed", "str", "Here the long form, e.g. 'February 3, 2026'."],
+    ]},
+    OrderSection: { side: "output", isNew: false, from: INV, change: "was ReportTextSection", doc: "A block of fixed text.", fields: [
+      ["heading", "str", "e.g. 'Terms of Sale:'."], ["paragraphs", "list[str]", "In order."],
+    ]},
+  },
+  changes: [
+    ["mvpxkrzt", "Add the Quote report input and output DTOs", "First version: 12 models."],
+    ["lzwqnsor", "Build the Invoice report DTO from the pricing maths", "<code>ReportTextSection</code> becomes <code>OrderSection</code>, so <code>fixed_text</code> changes type."],
+    ["ptkyrmvl", "Build the Quote report DTO from the pricing maths", "Adds the builder and <code>OrderService.get_quote_report</code>. No DTO change."],
+    ["wnoxsqlk", "Rename Invoice and Quote DTO fields to the backend's names", "31 fields in these DTOs get new names."],
+    ["qrvtwmzk", "Reuse DTOs and stdlib statistics in the pricing maths and fix discount printing", "Adds <code>OfferInput</code>. Inputs refuse unknown fields. Nullable inputs default to None. Adds <code>discount_total</code>."],
+  ],
+  tests: [
+    { file: "domain/entity/test_order_quote.py", items: [
+      ["test_quote_report_input_reads_dates_methods_and_both_offer_sets", 1, "date, enum, both offer lists, cart"],
+      ["test_quote_report_input_leaves_each_nullable_field_out_as_none", 1, "left-out fields read as None"],
+      ["test_quote_report_input_picks_each_offers_discount_type_from_its_unit", 1, "dollars and percent offers"],
+      ["test_quote_report_input_accepts", 5, "price, no price, no method, Tiered, no offers"],
+      ["test_quote_report_input_rejects", 8, "'Fixed', no date, no unit, text %, no address, 3 unknown fields"],
+      ["test_quote_models_are_frozen", 3, "input, report, method block"],
+      ["test_quote_report_keeps_the_chosen_block_price_and_the_other_blocks_notice", 1, "dump and reload"],
+    ]},
+    { file: "service/order/test_quote_report.py", items: [
+      ["test_prints_the_customer_header_for_12_harbour_lane", 1, "header strings"],
+      ["test_prints_the_bundle_pricing_block_for_12_harbour_lane", 1, "price, summary, lines, 3 rows, 5 notes"],
+      ["test_prints_the_tiered_pricing_block_for_12_harbour_lane", 1, "notice, summary, lines, 2 rows, 7 notes"],
+      ["test_prints_each_bundle_offer_cart_detail_block", 1, "14 + 12 lines per offer"],
+      ["test_prints_the_tiered_price_details_table", 1, "2 rows, blank nets"],
+      ["test_carries_the_fixed_text_with_the_last_page_footnote_and_no_banner", 1, "'last page', no banner"],
+      ["test_completes_only_the_chosen_methods_block", 5, "each method value and None"],
+      ["test_prints_a_blank_price_line_when_the_method_price_is_missing", 1, "two blanks"],
+      ["test_prints_blank_rows_and_equations_without_offers", 1, "blank rows, empty lists"],
+      ["test_prints_one_offer_as_its_own_median_and_average_with_no_regression", 1, "$38,996 / $34,875"],
+      ["test_prints_a_negative_offer_net_value_with_a_leading_minus_and_keeps_it_in_the_statistics", 1, "-$10,994"],
+      ["test_does_not_print_no_discount_applied_for_an_unpriced_offer_with_percent_discount", 1, "no note, blank total"],
+      ["test_prints_the_price_adjustments_in_the_adjusted_price_line", 1, "-$5,000 + $2,000 = -$3,000"],
+      ["test_prints_one_net_adjustment_for_the_adjusted_price_line_and_the_price_details", 2, "no adjustment, no offer price"],
+      ["test_order_service_returns_the_quote_report_without_a_session", 1, "service = builder"],
+    ]},
+  ],
+  sample: `<div class="grid2" style="grid-template-rows:auto auto auto">
+    <div class="card span2"><div class="pane-h"><span><b>build_quote_report(SAMPLE_INPUT)</b> · test_quote_report.py · not the PDF layout</span><span>QuoteReport</span></div>
+      <div class="kv"><div><i>customer_address</i><span>12 Harbour Lane, 40213</span></div><div><i>order_date</i><span>February 3, 2026</span></div><div><i>order_quantity</i><span>440 Units</span></div><div><i>quoted_total</i><span>$28,000</span></div><div><i>final_per_unit</i><span>$63.64</span></div><div><i>pricing_method</i><span>Bundle</span></div></div></div>
+    <div class="card"><div class="pane-h"><span><b>bundle</b> · Bundle Pricing · price $27,000 · $61.36</span><span>chosen</span></div><div class="body"><table>
+      <thead><tr><th>offer_name</th><th>adj. price</th><th>net value</th><th>qty</th><th>$/Unit</th><th>adj. net value</th></tr></thead>
+      <tbody>
+        <tr><td>Starter Bundle</td><td>$319,990</td><td>$38,996</td><td>492</td><td>$79.26</td><td>$34,875</td></tr>
+        <tr><td>Family Bundle</td><td>$285,000</td><td>$4,006</td><td>462</td><td>$8.67</td><td>$3,815</td></tr>
+        <tr><td>Pro Bundle</td><td>$331,990</td><td>$28,160</td><td>687</td><td>$40.99</td><td>$18,036</td></tr>
+        <tr class="sum"><td>Simple Regression</td><td></td><td>$18,479</td><td></td><td></td><td>$17,869</td></tr>
+        <tr class="sum"><td>Median</td><td></td><td>$28,160</td><td></td><td></td><td>$18,036</td></tr>
+        <tr class="sum"><td>Average</td><td></td><td>$23,721</td><td></td><td></td><td>$18,909</td></tr>
+      </tbody></table></div><div class="foot mono">y = 48.9x + -3,056 · y = 9.6x + 13,628 · 5 notes</div></div>
+    <div class="card"><div class="pane-h"><span><b>tiered</b> · Tiered Pricing Not Completed</span><span>notice</span></div><div class="body"><table>
+      <thead><tr><th>offer_name</th><th>adj. price</th><th>share %</th><th>net value</th><th>$/Unit</th><th>adj. net value</th></tr></thead>
+      <tbody>
+        <tr><td>Starter Bundle</td><td>$319,990</td><td>100.00%</td><td>$319,990</td><td>$650.39</td><td>$286,172</td></tr>
+        <tr><td>Family Bundle</td><td>$285,000</td><td>100.00%</td><td>$285,000</td><td>$616.88</td><td>$271,429</td></tr>
+        <tr class="sum"><td>Simple Regression</td><td></td><td></td><td>$260,105</td><td></td><td>$261,325</td></tr>
+        <tr class="sum"><td>Median</td><td></td><td></td><td>$302,495</td><td></td><td>$278,801</td></tr>
+        <tr class="sum"><td>Average</td><td></td><td></td><td>$302,495</td><td></td><td>$278,801</td></tr>
+      </tbody></table></div><div class="foot mono">y = 1147.2x + -244,668 · y = 473.7x + 52,885 · 7 notes</div></div>
+    <div class="card"><div class="pane-h"><span><b>bundle_details</b> · discount note on all three</span><span>3 × BundleOfferDetails</span></div><div class="body"><table>
+      <thead><tr><th>label</th><th>price</th><th>net</th><th>cart total</th><th>disc.</th><th>handling</th><th>net value</th></tr></thead>
+      <tbody>
+        <tr><td>Offer 1</td><td>$319,990</td><td>$0</td><td>$275,994</td><td>$0</td><td>$5,000</td><td>$38,996</td></tr>
+        <tr><td>Offer 2</td><td>$285,000</td><td>$0</td><td>$275,994</td><td>$0</td><td>$5,000</td><td>$4,006</td></tr>
+        <tr><td>Offer 3</td><td>$331,990</td><td>$0</td><td>$298,830</td><td>$0</td><td>$5,000</td><td>$28,160</td></tr>
+      </tbody></table></div></div>
+    <div class="card"><div class="pane-h"><span><b>tiered_price_details</b> · adjusted price has no $</span><span>2 × TieredPriceDetail</span></div><div class="body"><table>
+      <thead><tr><th>label</th><th>offer_name</th><th>offer_price</th><th>net_adjustment</th><th>adjusted_offer_price</th></tr></thead>
+      <tbody>
+        <tr><td>Offer 1</td><td>Starter Bundle</td><td>$319,990</td><td class="blank">blank</td><td>319,990</td></tr>
+        <tr><td>Offer 2</td><td>Family Bundle</td><td>$285,000</td><td class="blank">blank</td><td>285,000</td></tr>
+      </tbody></table></div></div>
+  </div>`,
+};
+
+
+const modeButtons = document.querySelectorAll("[data-mode]");
+function setMode(mode) {
+  document.documentElement.setAttribute("data-mode", mode);
+  modeButtons.forEach(b => b.setAttribute("aria-checked", String(b.dataset.mode === mode)));
+  try { localStorage.setItem("daniel-artifact-mode", mode); } catch (e) {}
+}
+let savedMode = "light";
+try { savedMode = localStorage.getItem("daniel-artifact-mode") || "light"; } catch (e) {}
+setMode(savedMode === "dark" ? "dark" : "light");
+modeButtons.forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+const T = PAGE.types;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+for (const t of Object.values(T)) {
+  t.fields = t.fields || [];
+  t.changed = !!t.change || t.fields.some(f => f[3] && (f[3].was || f[3].added));
+}
+
+document.getElementById("h1").textContent = PAGE.title;
+document.getElementById("sub").innerHTML = PAGE.sub;
+document.getElementById("builder").innerHTML = PAGE.builder;
+const sib = document.getElementById("sib");
+sib.textContent = PAGE.sibling.label + " ↗";
+sib.href = PAGE.sibling.url;
+
+function refOf(typeStr) {
+  const words = String(typeStr).match(/\b[A-Za-z_]+\b/g) || [];
+  return words.find(w => T[w] && (T[w].fields.length || T[w].values || T[w].members)) || null;
+}
+function count(name) {
+  const t = T[name];
+  if (t.values) return `${t.values.length} values`;
+  if (t.members) return `${t.members.length} members`;
+  return `${t.fields.length} fields`;
+}
+const ALL_TYPES = ["QuoteReportInput", "QuoteReport", "InvoiceReportInput", "InvoiceReport", "BundleOfferInput", "TieredOfferInput",
+  "OfferInput", "PriceAdjustmentsInput", "CartInput", "DiscountInput", "DiscountDollars", "DiscountPercents",
+  "PricingMethodType", "OrderStatus", "InvoiceSkipReason", "SkippedReport", "Address", "PricingMethodBlock", "MethodPrice",
+  "SummaryRow", "RegressionEquation", "OfferRow", "BundleOfferDetails", "TieredPriceDetail", "CartCostDetails",
+  "ItemsCostDetails", "ShippingCostDetails", "InsuranceCostDetails", "ChargeLine", "DiscountReport", "ReportValue",
+  "ReportDate", "OrderSection"];
+const HUE = {};
+const TIERS = [[0.94, 0.038, 0.3], [0.86, 0.075, 0.4], [0.79, 0.098, 0.23]];
+ALL_TYPES.forEach((n, i) => { HUE[n] = [Math.round((25 + i * 137.508) % 360), TIERS[i % 3]]; });
+function chip(name) {
+  const t = T[name];
+  const [h, [bl, bc, dl]] = HUE[name] || [0, TIERS[0]];
+  return `<b class="chip k-${t.kind || "model"}" style="--h:${h};--bl:${bl};--bc:${bc};--dl:${dl}">${name}</b>`;
+}
+function typeHtml(s) {
+  return esc(s).replace(/\b[A-Za-z_]+\b/g, w => T[w] ? chip(w) : w);
+}
+function chipCode(html) {
+  return html.replace(/<code>([A-Za-z_]+)<\/code>/g, (m, w) => T[w] ? chip(w) : m);
+}
+function childrenOf(name) {
+  const t = T[name];
+  if (t.values) return t.values.map(([k, v]) => ({ f: k, ty: "", d: v }));
+  if (t.members) return t.members.map(([label, m]) => ({ f: label, ty: m, d: "" }));
+  return t.fields.map(([f, ty, d, fl]) => ({ f, ty, d, fl: fl || {} }));
+}
+
+function makeNode(item, prefix, last, root) {
+  const node = document.createElement("div");
+  const ref = refOf(item.ty);
+  const fl = item.fl || {};
+  const list = /^list\[/.test(item.ty);
+  const nullable = /\| None/.test(item.ty);
+  const shown = item.ty.replace(/^list\[(.*)\]$/, "$1").replace(/ \| None$/, "");
+  const row = document.createElement("div");
+  row.className = "row" + (root ? " root" : "") + (ref ? " x" : "");
+  row.innerHTML = `<span class="car">${ref ? "▸" : ""}</span><span class="g">${root ? "" : prefix + (last ? "└─ " : "├─ ")}</span>`
+    + (item.f ? `<span class="f">${esc(item.f)}</span>` : "")
+    + (shown ? `<span class="ty">${typeHtml(shown)}</span>` : "")
+    + (list ? `<span class="m">[]</span>` : "")
+    + (nullable ? `<span class="m">?</span>` : "")
+    + (ref && T[ref].changed ? `<i class="dot" title="Changed in the chain"></i>` : "")
+    + (fl.opt ? `<span class="fl">optional</span>` : "")
+    + (fl.base ? `<span class="fl">from ${fl.base}</span>` : "")
+    + (fl.added ? `<span class="fl a">added</span>` : "")
+    + (fl.was ? `<span class="fl a">was ${esc(fl.was)}</span>` : "")
+    + (item.d ? `<span class="d">${esc(item.d)}</span>` : "")
+    + (ref ? `<span class="cnt">${count(ref)}</span>` : "");
+  node.appendChild(row);
+  if (!ref) return node;
+  row.tabIndex = 0;
+  row.setAttribute("role", "button");
+  row.setAttribute("aria-expanded", "false");
+  const kids = document.createElement("div");
+  kids.hidden = true;
+  node.appendChild(kids);
+  const childPrefix = root ? "" : prefix + (last ? "   " : "│  ");
+  node.toggle = open => {
+    const want = open ?? kids.hidden;
+    if (want && !kids.childElementCount) {
+      const t = T[ref];
+      const extra = [t.kind, t.from, t.change].filter(Boolean).map(esc).join(" · ");
+      const doc = document.createElement("div");
+      doc.className = "row doc";
+      doc.innerHTML = `<span class="car"></span><span class="g">${childPrefix}│  </span><span>${esc(t.doc)}${extra ? ` <span style="color:var(--muted)">${extra}</span>` : ""}</span>`;
+      kids.appendChild(doc);
+      const items = childrenOf(ref);
+      items.forEach((it, i) => kids.appendChild(makeNode(it, childPrefix, i === items.length - 1, false)));
+    }
+    kids.hidden = !want;
+    row.setAttribute("aria-expanded", String(want));
+    row.querySelector(".car").textContent = want ? "▾" : "▸";
+  };
+  row.addEventListener("click", () => node.toggle());
+  row.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); node.toggle(); }
+    if (e.key === "ArrowRight") node.toggle(true);
+    if (e.key === "ArrowLeft") node.toggle(false);
+  });
+  return node;
+}
+
+function renderRoots(el, roots) {
+  el.innerHTML = "";
+  for (const r of roots) {
+    if (r.sep) { el.insertAdjacentHTML("beforeend", `<div class="sep">${esc(r.sep)}</div>`); continue; }
+    const n = makeNode({ f: "", ty: r.t, d: "" }, "", true, true);
+    el.appendChild(n);
+    n.toggle(true);
+  }
+}
+document.getElementById("rules").innerHTML = PAGE.rules.map(([b, s]) => `<li><b>${b}</b><span>${chipCode(s)}</span></li>`).join("");
+renderRoots(document.getElementById("tree-in"), PAGE.input);
+renderRoots(document.getElementById("tree-out"), PAGE.output);
+
+function openLevel(pane) {
+  const closed = [];
+  const walk = el => {
+    for (const n of el.children) {
+      if (!n.toggle) continue;
+      const kids = n.children[1];
+      if (kids.hidden) closed.push(n); else walk(kids);
+    }
+  };
+  walk(pane);
+  closed.forEach(n => n.toggle(true));
+}
+document.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => {
+  const pane = document.getElementById(b.dataset.pane);
+  if (b.dataset.act === "open") openLevel(pane);
+  else renderRoots(pane, b.dataset.pane === "tree-in" ? PAGE.input : PAGE.output);
+}));
+
+document.getElementById("v-sample").innerHTML = PAGE.sample;
+
+const renames = [];
+for (const [name, t] of Object.entries(T)) for (const [f, , , fl] of t.fields) if (fl && fl.was) renames.push([name, fl.was, f]);
+document.getElementById("v-changes").innerHTML = `<div class="grid2" style="grid-template-rows:auto minmax(0,1fr)">
+  <div class="card span2"><div class="pane-h"><span><b>Commits</b> that touched these DTOs, oldest first</span><span>${PAGE.changes.length}</span></div><div class="body"><table>
+    <thead><tr><th></th><th class="l">change</th><th class="l">commit</th><th class="l">what changed in the DTOs</th></tr></thead>
+    <tbody>${PAGE.changes.map(([id, title, what], i) => `<tr><td class="n">${i + 1}</td><td class="mono l">${id}</td><td class="l">${esc(title)}</td><td class="l wrap" style="color:var(--muted)">${what}</td></tr>`).join("")}</tbody>
+  </table></div></div>
+  <div class="card span2"><div class="pane-h"><span><b>Renamed fields</b> · old → new, by type</span><span>${renames.length}</span></div><div class="body"><div class="renames">
+    ${renames.map(([t, o, n]) => `<span>${chip(t)} <s>${o}</s> → ${n}</span>`).join("")}
+  </div></div></div>
+</div>`;
+
+document.getElementById("v-tests").innerHTML = `<div class="grid2" style="height:100%">${PAGE.tests.map(g => `
+  <div class="card"><div class="pane-h"><span><b>${g.file}</b></span><span>${g.items.length} tests</span></div><div class="body"><table>
+    <thead><tr><th class="l">test</th><th>cases</th><th class="l">checks</th></tr></thead>
+    <tbody>${g.items.map(([n, c, w]) => `<tr><td class="mono wrap" style="overflow-wrap:anywhere">${n}</td><td>${c}</td><td class="l wrap" style="color:var(--muted)">${w}</td></tr>`).join("")}</tbody>
+  </table></div></div>`).join("")}</div>`;
+
+const views = ["interfaces", "sample", "changes", "tests"];
+const tabs = document.querySelectorAll("[data-view]");
+function show(v) {
+  if (!views.includes(v)) v = "interfaces";
+  tabs.forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === v)));
+  views.forEach(x => { document.getElementById("v-" + x).hidden = x !== v; });
+}
+tabs.forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.view; show(b.dataset.view); }));
+window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+show(location.hash.slice(1));
+</script>

@@ -1,0 +1,310 @@
+<title>PAGE TITLE</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #f7f7f4;
+  --panel: #eeede7;
+  --surface: #ffffff;
+  --ink: #1a1914;
+  --muted: #4f4d46;
+  --faint: #7d7b73;
+  --line: #d3d1c8;
+  --accent: #c93f00;
+  --accent-soft: #f8dccb;
+  --crit: #b4231f;
+  --crit-soft: #f9dcd9;
+  --warn: #8a5a00;
+  --warn-soft: #f6e7c8;
+  --ok: #1d6b3a;
+  --ok-soft: #d9efe0;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+:root[data-mode="dark"] {
+  --bg: #14120b; --panel: #1b1912; --surface: #252219; --ink: #efeeea; --muted: #b3b1a9; --faint: #7f7d75; --line: #353229;
+  --accent: #ff7a3d; --accent-soft: #3d2416;
+  --crit: #ff8a80; --crit-soft: #3d1a17; --warn: #f0c060; --warn-soft: #3a2c10; --ok: #7fd6a0; --ok-soft: #173322;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.45 var(--sans); }
+button { font: inherit; color: inherit; }
+a { color: inherit; text-decoration-color: var(--faint); text-underline-offset: 2px; }
+a:hover { text-decoration-color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+code { font-family: var(--mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+
+.app { max-width: 1480px; margin: 0 auto; padding-bottom: 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding-block: 14px 12px; border-bottom: 1px solid var(--line); }
+.ttl { display: grid; gap: 2px; min-width: 0; }
+h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.sub b { color: var(--ink); font-weight: 500; }
+.right { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.sib { font-size: 12px; color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+.sib:hover { color: var(--ink); }
+.seg { display: inline-flex; padding: 2px; gap: 2px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.seg button { border: 0; background: transparent; padding: 4px 11px; border-radius: 6px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.seg button[aria-checked="true"], .seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+
+.view { display: grid; gap: 12px; padding-block: 12px; align-content: start; }
+.prose { max-width: 72ch; display: grid; gap: 10px; }
+.prose h2 { margin: 12px 0 0; font-size: 15px; font-weight: 600; letter-spacing: -0.005em; text-wrap: balance; }
+.prose h3 { margin: 8px 0 0; font-size: 13.5px; font-weight: 600; }
+.prose h4 { margin: 4px 0 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.prose p, .prose ul, .prose ol { margin: 0; line-height: 1.6; }
+.prose ul, .prose ol { padding-left: 20px; display: grid; gap: 3px; }
+.prose blockquote { margin: 0; padding: 4px 12px; border-left: 2px solid var(--line); color: var(--muted); }
+.eyebrow { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+hr.rule { border: 0; border-top: 1px solid var(--line); margin: 8px 0; width: 100%; }
+
+.pane, .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.pane-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
+.pane-h b { color: var(--ink); font-weight: 500; }
+.pane-b { padding: 8px 4px 10px; overflow-x: auto; }
+.body { overflow-x: auto; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.span2 { grid-column: 1 / -1; }
+.kv { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 9px 12px; font-size: 12px; }
+.kv div { display: grid; }
+.kv i { font-style: normal; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+.kv span { font-family: var(--mono); font-size: 12.5px; }
+.foot { padding: 7px 12px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); }
+
+table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 5px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-weight: 500; font-size: 11px; color: var(--muted); }
+th:first-child, td:first-child, td.l, th.l { text-align: left; }
+td.n { color: var(--faint); width: 1%; font-family: var(--mono); font-size: 11px; }
+td.mono { font-family: var(--mono); font-size: 11.5px; }
+td.wrap { white-space: normal; }
+td.blank { color: var(--faint); }
+td .s { color: var(--faint); font-size: 11px; }
+tr.tot td { font-weight: 600; border-top: 1px solid var(--ink); }
+
+.rules { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px; background: var(--panel); overflow: hidden; }
+.rules li { padding: 9px 12px; display: grid; gap: 2px; align-content: start; min-width: 0; box-shadow: 1px 0 0 var(--line), 0 1px 0 var(--line); }
+.rules b { font-size: 12px; font-weight: 600; }
+.rules span { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.legend > span { display: inline-flex; gap: 5px; align-items: center; }
+
+.callout { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 9px 12px; display: grid; gap: 3px; }
+.callout.crit { border-left-color: var(--crit); }
+.callout.ok { border-left-color: var(--ok); }
+.callout .label, .label { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.callout p { margin: 0; line-height: 1.55; }
+.codeblock { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.codeblock .file { padding: 6px 12px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.codeblock pre { margin: 0; padding: 10px 12px; overflow-x: auto; font-family: var(--mono); font-size: 12px; line-height: 1.55; }
+.codeblock .add { background: var(--ok-soft); color: var(--ok); display: inline-block; min-width: 100%; }
+.codeblock .del { background: var(--crit-soft); color: var(--crit); display: inline-block; min-width: 100%; }
+.codeblock .hl { background: var(--accent-soft); display: inline-block; min-width: 100%; }
+.codeblock .cmt { color: var(--faint); }
+
+.fl { font-family: var(--sans); font-size: 10.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 6px; background: var(--surface); white-space: nowrap; }
+.fl.a { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-soft); }
+.fl.crit { color: var(--crit); border-color: var(--crit-soft); background: var(--crit-soft); }
+.fl.warn { color: var(--warn); border-color: var(--warn-soft); background: var(--warn-soft); }
+.fl.ok { color: var(--ok); border-color: var(--ok-soft); background: var(--ok-soft); }
+
+.chip { --bl: 0.93; --bc: 0.04; --dl: 0.31; display: inline-block; font-family: var(--mono); font-weight: 500; font-size: 12px; line-height: 17px; padding: 0 6px; border-radius: 4px; white-space: nowrap;
+  background: oklch(var(--bl) var(--bc) var(--h, 250)); color: oklch(0.33 0.11 var(--h, 250)); border: 1px solid oklch(calc(var(--bl) - 0.12) calc(var(--bc) + 0.03) var(--h, 250)); }
+:root[data-mode="dark"] .chip { background: oklch(var(--dl) 0.06 var(--h, 250)); color: oklch(0.92 0.065 var(--h, 250)); border-color: oklch(calc(var(--dl) + 0.13) 0.075 var(--h, 250)); }
+.chip.k-enum { border-style: dashed; }
+.chip.k-union { border-style: dotted; border-width: 1.5px; }
+.chip.k-external { background: transparent; }
+.rules .chip, .legend .chip { font-size: 10.5px; line-height: 15px; padding: 0 4px; }
+
+@media (max-width: 760px) {
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .rules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* page */
+.app { max-width: 1080px; }
+.bar-nav { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; }
+.bar-nav a { color: var(--muted); text-decoration: none; }
+.bar-nav a:hover { color: var(--ink); }
+.standfirst { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink); }
+.meta-row { display: flex; flex-wrap: wrap; gap: 4px 16px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.glance { display: grid; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.glance-row { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--line); align-items: baseline; }
+.glance-row:last-child { border-bottom: 0; }
+.g-num { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.g-title { display: grid; gap: 2px; min-width: 0; }
+.g-title a { font-weight: 500; text-decoration: none; }
+.g-title a:hover { text-decoration: underline; }
+.g-title span { font-size: 12px; color: var(--muted); }
+.g-kind { font-family: var(--mono); font-size: 11px; color: var(--faint); white-space: nowrap; }
+.issue { display: grid; gap: 12px; padding-block: 12px; scroll-margin-top: 12px; }
+.issue-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; align-items: baseline; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.ordinal { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+.issue-head h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.005em; text-wrap: balance; }
+.issue-head .tags { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; }
+.issue-body { display: grid; gap: 10px; }
+.issue-body > p, .issue-body > ol, .issue-body > ul, .issue-body > blockquote, .issue-body > h3, .issue-body > h4 { max-width: 72ch; }
+.issue-body h3 { margin: 8px 0 0; font-size: 13.5px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+.issue-body h3 .num { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.issue-body h4 { margin: 4px 0 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.issue-body p, .issue-body ol, .issue-body ul { margin: 0; line-height: 1.6; }
+.issue-body ol, .issue-body ul { padding-left: 20px; display: grid; gap: 3px; }
+.issue-body blockquote { margin: 0; padding: 4px 12px; border-left: 2px solid var(--line); color: var(--muted); }
+.path { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+figure svg { display: block; max-width: 100%; height: auto; min-width: 560px; color: var(--ink); font-family: var(--sans); }
+figcaption { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.s-ink { stroke: var(--ink); fill: none; }
+.s-crit { stroke: var(--crit); fill: var(--crit-soft); }
+.s-acc { stroke: var(--accent); fill: none; }
+.f-ink { fill: var(--ink); }
+.f-muted { fill: var(--muted); }
+.f-crit { fill: var(--crit); }
+.f-acc { fill: var(--accent); }
+.foot-note { padding-block: 12px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="ttl">
+      <h1>PAGE TITLE</h1>
+      <span class="sub">SHORT SCOPE · <b>branch or repo</b> · N findings</span>
+    </div>
+    <div class="right">
+      <nav class="bar-nav" aria-label="Findings">
+        <a href="#i1">01 · SHORT LABEL</a>
+        <a href="#i2">02 · SHORT LABEL</a>
+      </nav>
+      <div class="seg" role="radiogroup" aria-label="Theme">
+        <button type="button" role="radio" data-mode="light" aria-checked="true">Light</button>
+        <button type="button" role="radio" data-mode="dark" aria-checked="false">Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="view">
+      <div class="prose">
+        <span class="eyebrow">N ROOT-CAUSE INVESTIGATIONS</span>
+        <p class="standfirst">One paragraph that names the THEME that connects the findings, and the split between their kinds.</p>
+        <div class="meta-row"><span>repo · PATH</span><span>be · PATH</span><span>fe · PATH</span></div>
+      </div>
+
+      <div class="glance">
+        <div class="glance-row">
+          <span class="g-num">01</span>
+          <span class="g-title"><a href="#i1">SYMPTOM AS THE USER SEES IT</a>
+            <span>The mechanism in one sentence, with the key <code>symbol</code> named.</span></span>
+          <span class="g-kind">CATEGORY · SUBTYPE</span>
+        </div>
+      </div>
+
+      <div class="card"><div class="pane-h"><span><b>Severity and effort</b></span><span>N findings</span></div><div class="body"><table>
+        <thead><tr><th class="l">#</th><th class="l">Issue</th><th class="l">Severity</th><th class="l">Effort</th><th class="l">SCOPING COLUMN</th><th class="l">Fix lands in</th></tr></thead>
+        <tbody>
+          <tr><td class="n">01</td><td class="l">SHORT NAME</td><td class="l"><span class="fl crit">High</span></td><td class="l"><span class="fl ok">Small</span></td><td class="l mono">FLAG OR CONDITION</td><td class="l mono">N files</td></tr>
+        </tbody>
+      </table></div></div>
+
+      <div class="callout">
+        <span class="label">LABEL</span>
+        <p>A caveat that applies to several findings at once.</p>
+      </div>
+    </section>
+
+    <section class="issue" id="i1" aria-labelledby="i1h">
+      <div class="issue-head">
+        <span class="ordinal">01</span>
+        <h2 id="i1h">SYMPTOM, PHRASED AS REPORTED</h2>
+        <div class="tags">
+          <span class="fl crit">High severity</span>
+          <span class="fl ok">Small fix</span>
+          <span class="fl warn">SCOPE / FLAG</span>
+          <span class="fl">CATEGORY</span>
+        </div>
+      </div>
+      <div class="issue-body">
+        <div class="callout crit">
+          <span class="label">Root cause</span>
+          <p>One or two sentences. The mechanism, not the symptom. Name the function or field that fails.</p>
+        </div>
+
+        <figure>
+          <svg viewBox="0 0 880 250" role="img" aria-label="FULL SENTENCE DESCRIPTION OF THE CHAIN.">
+            <defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker></defs>
+            <g class="s-ink" stroke-width="1.1"><rect x="20" y="46" width="170" height="46" rx="4"></rect></g>
+            <g class="f-ink" font-size="12"><text x="105" y="64" text-anchor="middle">STEP</text><text x="105" y="80" text-anchor="middle" font-size="10.5" class="f-muted">where it happens</text></g>
+          </svg>
+          <figcaption>What the picture claims, and which edge is the fix.</figcaption>
+        </figure>
+
+        <h3><span class="num">1</span>NUMBERED STEP IN THE MECHANISM</h3>
+        <div class="codeblock">
+          <div class="file">path/to/file.py:172-194</div>
+          <pre>VERBATIM CODE, HTML-ESCAPED (&lt; &gt; &amp;)
+<span class="cmt"># annotation</span>
+<span class="hl">the line that matters</span></pre>
+        </div>
+
+        <blockquote>A quoted docstring or comment from the code that states the gap.</blockquote>
+
+        <h4>Data flow</h4>
+        <ol><li>Step, with the <code>symbol</code> and <span class="path">path:line</span>.</li></ol>
+
+        <h4>Fixes that do not work</h4>
+        <p>Rejected alternatives, with the evidence that rules each one out.</p>
+
+        <h3><span class="num">2</span>The fix</h3>
+        <div class="codeblock">
+          <div class="file">path/to/file.py</div>
+          <pre>@@ context @@
+<span class="del">-  removed</span>
+<span class="add">+  added</span></pre>
+        </div>
+
+        <p>Why it is sufficient and safe. Behaviour deltas for the PR. The regression check that fails today and passes after.</p>
+
+        <div class="callout">
+          <span class="label">Skipped</span>
+          <p>What was not done, and the condition that would make it worth doing.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot-note">Generated FROM WHAT · N findings · scope: WHAT WAS AND WAS NOT EXAMINED</footer>
+  </main>
+</div>
+
+<script>
+const CHIP_ORDER = [];
+
+const modeButtons = document.querySelectorAll("[data-mode]");
+function setMode(mode) {
+  document.documentElement.setAttribute("data-mode", mode);
+  modeButtons.forEach(b => b.setAttribute("aria-checked", String(b.dataset.mode === mode)));
+  try { localStorage.setItem("daniel-artifact-mode", mode); } catch (e) {}
+}
+let savedMode = "light";
+try { savedMode = localStorage.getItem("daniel-artifact-mode") || "light"; } catch (e) {}
+setMode(savedMode === "dark" ? "dark" : "light");
+modeButtons.forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+const CHIP_TIERS = [[0.94, 0.038, 0.3], [0.86, 0.075, 0.4], [0.79, 0.098, 0.23]];
+function chipStyle(name) {
+  let i = CHIP_ORDER.indexOf(name);
+  if (i < 0) { i = 0; for (const c of name) i = (i * 31 + c.charCodeAt(0)) >>> 0; }
+  const [bl, bc, dl] = CHIP_TIERS[i % 3];
+  return `--h:${Math.round((25 + i * 137.508) % 360)};--bl:${bl};--bc:${bc};--dl:${dl}`;
+}
+function chip(name, kind = "model") {
+  const esc = String(name).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return `<b class="chip k-${kind}" style="${chipStyle(name)}">${esc}</b>`;
+}
+document.querySelectorAll("[data-chip]").forEach(el => { el.outerHTML = chip(el.dataset.chip, el.dataset.kind); });
+</script>

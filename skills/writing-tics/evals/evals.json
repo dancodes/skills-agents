@@ -1,0 +1,206 @@
+{
+  "skill_name": "writing-tics",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "context-window-eval-report",
+      "prompt": "Can you remove the writing tics from this section of my eval write-up before I post it?\n\n## What the numbers actually say\n\nSix legs. One GPU, one server build, one sampler, one question set. The only thing that changes is the context window: 4k, 8k, 16k, 32k, 64k and 128k.\n\nLeg 6 is the leg that answers the actual question. At 128k the model scores 61.2% on the 400-question set, down from 74.5% at 4k. It is not a gradual slide. It is a cliff: legs 1 through 5 sit between 72.9% and 74.5%.\n\nMedian hides it. The median request at 128k takes 2.1 s, barely above the 1.8 s at 4k, but the p99 is 19.4 s and 23 of the 400 requests timed out at 30 s.\n\nA 13.3-point drop from one config change is the kind of number that looks like a bug and is not.",
+      "input": "## What the numbers actually say\n\nSix legs. One GPU, one server build, one sampler, one question set. The only thing that changes is the context window: 4k, 8k, 16k, 32k, 64k and 128k.\n\nLeg 6 is the leg that answers the actual question. At 128k the model scores 61.2% on the 400-question set, down from 74.5% at 4k. It is not a gradual slide. It is a cliff: legs 1 through 5 sit between 72.9% and 74.5%.\n\nMedian hides it. The median request at 128k takes 2.1 s, barely above the 1.8 s at 4k, but the p99 is 19.4 s and 23 of the 400 requests timed out at 30 s.\n\nA 13.3-point drop from one config change is the kind of number that looks like a bug and is not.",
+      "expected_output": "## Accuracy and latency by context window\n\nThe run has six legs, and all six use the same GPU, server build, sampler and question set. The only thing that changes is the context window: 4k, 8k, 16k, 32k, 64k and 128k.\n\nThe main result is leg 6: at 128k the model scores 61.2% on the 400-question set, down from 74.5% at 4k. The drop is abrupt rather than gradual, because legs 1 through 5 sit between 72.9% and 74.5%.\n\nAt 128k most requests are fast but some are very slow. The median request at 128k takes 2.1 s, barely above the 1.8 s at 4k, but the p99 is 19.4 s and 23 of the 400 requests timed out at 30 s.\n\nA 13.3-point drop from one config change looks like a bug, but it is not one.",
+      "files": [],
+      "expectations": [
+        "Every number in the input (4k, 8k, 16k, 32k, 64k, 128k, 61.2%, 74.5%, 72.9%, 400, 2.1 s, 1.8 s, 19.4 s, 23, 30 s, 13.3) appears in the output",
+        "The output contains no em dash, en dash used as a dash, or spaced double hyphen",
+        "The output has no negation-first reveal of the form 'It is not X. It is Y.'",
+        "The header keeps its ## level and is a plain descriptive label that does not start with What, Why, How or Where",
+        "The 'Six legs.' fragments are gone and the output says the six legs share the same GPU, server build, sampler and question set",
+        "The output drops 'is the leg that answers the actual question' and 'Median hides it.', and no statistic, table or log is the subject of hides, shows, understates, reflects or confirms",
+        "The closing sentence keeps the verdict that the 13.3-point drop is not a bug, without 'the kind of number that'",
+        "Every prose sentence in the output has a subject and a finite verb (no fragments)"
+      ],
+      "checks": {
+        "required": [
+          "4k",
+          "8k",
+          "16k",
+          "32k",
+          "64k",
+          "128k",
+          "61.2%",
+          "74.5%",
+          "72.9%",
+          "400",
+          "2.1 s",
+          "1.8 s",
+          "19.4 s",
+          "23",
+          "30 s",
+          "13.3",
+          "GPU",
+          "server build",
+          "sampler",
+          "question set",
+          "bug"
+        ],
+        "forbidden": [
+          "(?m)^#+\\s*(What|Why|How|Where)\\b",
+          "Six legs\\.",
+          "answers the actual question",
+          "Median hides",
+          "kind of number",
+          "(?i)\\b(median|table|data|logs?|chart|curve)\\b[^.]{0,20}\\b(hides|shows|understates|reflects?|confirms|tells)\\b"
+        ],
+        "header_level": "## "
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "channel-conversion-analysis",
+      "prompt": "make this read less like AI pls, it's going in the growth review doc\n\n### The one channel that does move\n\nWe split the 18,240 trial users into six acquisition channels. Five of those six channels convert within a point of each other, between 11.8% and 12.9%. The sixth does not.\n\nPaid social converts at 4.3%. \"Paid-social users are just lower intent\" is the obvious reading, and it is wrong. The same channel's users who complete onboarding convert at 12.4%, in line with everyone else. The drop-off happens at step 2 of onboarding, where 61% of paid-social users leave, against 22% across the other channels.\n\nThe March decision to cut paid-social spend by 30% was a funnel problem wearing the costume of a targeting problem. The fix was in the form all along.\n\nThe short version: onboarding step 2.",
+      "input": "### The one channel that does move\n\nWe split the 18,240 trial users into six acquisition channels. Five of those six channels convert within a point of each other, between 11.8% and 12.9%. The sixth does not.\n\nPaid social converts at 4.3%. \"Paid-social users are just lower intent\" is the obvious reading, and it is wrong. The same channel's users who complete onboarding convert at 12.4%, in line with everyone else. The drop-off happens at step 2 of onboarding, where 61% of paid-social users leave, against 22% across the other channels.\n\nThe March decision to cut paid-social spend by 30% was a funnel problem wearing the costume of a targeting problem. The fix was in the form all along.\n\nThe short version: onboarding step 2.",
+      "expected_output": "### Conversion by acquisition channel\n\nWe split the 18,240 trial users into six acquisition channels. Five of the six channels convert within a point of each other, between 11.8% and 12.9%, and the sixth, paid social, converts at 4.3%.\n\nLower intent does not explain the paid-social gap. The same channel's users who complete onboarding convert at 12.4%, in line with everyone else. The drop-off happens at step 2 of onboarding, where 61% of paid-social users leave, against 22% across the other channels.\n\nThe March decision to cut paid-social spend by 30% treated a funnel problem as a targeting problem. The fix was in the form all along.\n\nIn short, the paid-social gap comes from step 2 of onboarding.",
+      "files": [],
+      "expectations": [
+        "Every number in the input (18,240, 11.8%, 12.9%, 4.3%, 12.4%, step 2, 61%, 22%, 30%) and the month March appear in the output",
+        "The output contains no em dash, en dash used as a dash, or spaced double hyphen",
+        "The header keeps its ### level and is a plain descriptive label, not 'The one channel that does move'",
+        "'The sixth does not.' is gone and paid social is named as the sixth channel next to the 11.8% to 12.9% range",
+        "The straw-man framing ('obvious reading', 'it is wrong') is gone but the output still says lower intent does not explain the paid-social gap",
+        "'wearing the costume' is gone but the output still says the 30% spend cut treated a funnel problem as a targeting problem",
+        "'The short version:' is gone and the final summary is a full sentence naming onboarding step 2",
+        "Every prose sentence in the output has a subject and a finite verb (no fragments)"
+      ],
+      "checks": {
+        "required": [
+          "18,240",
+          "11.8%",
+          "12.9%",
+          "4.3%",
+          "12.4%",
+          "step 2",
+          "61%",
+          "22%",
+          "30%",
+          "March",
+          "funnel",
+          "targeting",
+          "intent"
+        ],
+        "forbidden": [
+          "does move",
+          "The sixth does not",
+          "obvious reading",
+          "it is wrong",
+          "costume",
+          "short version"
+        ],
+        "header_level": "### "
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "training-divergence-postmortem",
+      "prompt": "De-tic this postmortem section. Keep it tight, don't lose anything.\n\n## Why the 7B run diverged\n\nThe loss curve tells the story. Smooth descent to step 41,000, then a spike from 1.92 to 6.8 over 300 steps. No recovery.\n\nIt wasn't the learning rate. It was the data. The warmup had finished by step 2,000 and the schedule was flat at 3e-4 from there on, so nothing in the optimizer changed near step 41,000. The data loader did: shard 117 starts at step 40,850, and 38% of its documents are base64 blobs from a scraping bug.\n\nThe logs confirm it. Gradient norm jumps from 0.9 to 14.2 within 150 steps of the shard boundary.\n\nBad data does not announce itself. It waits.",
+      "input": "## Why the 7B run diverged\n\nThe loss curve tells the story. Smooth descent to step 41,000, then a spike from 1.92 to 6.8 over 300 steps. No recovery.\n\nIt wasn't the learning rate. It was the data. The warmup had finished by step 2,000 and the schedule was flat at 3e-4 from there on, so nothing in the optimizer changed near step 41,000. The data loader did: shard 117 starts at step 40,850, and 38% of its documents are base64 blobs from a scraping bug.\n\nThe logs confirm it. Gradient norm jumps from 0.9 to 14.2 within 150 steps of the shard boundary.\n\nBad data does not announce itself. It waits.",
+      "expected_output": "## Cause of the 7B run divergence\n\nThe loss falls smoothly until step 41,000, then spikes from 1.92 to 6.8 over 300 steps and does not recover.\n\nThe divergence was caused by the data rather than the learning rate. The warmup had finished by step 2,000 and the schedule was flat at 3e-4 from there on, so nothing in the optimizer changed near step 41,000. The data loader did change: shard 117 starts at step 40,850, and 38% of its documents are base64 blobs from a scraping bug.\n\nIn the training logs, the gradient norm jumps from 0.9 to 14.2 within 150 steps of the shard boundary.\n\nThe bad shard caused no visible problem until training reached it.",
+      "files": [],
+      "expectations": [
+        "Every number in the input (7B, 41,000, 1.92, 6.8, 300, 2,000, 3e-4, 117, 40,850, 38%, 0.9, 14.2, 150) appears in the output",
+        "The output contains no em dash, en dash used as a dash, or spaced double hyphen",
+        "The output has no negation-first reveal such as 'It wasn't X. It was Y.'",
+        "The header keeps its ## level and does not start with Why",
+        "'tells the story', 'confirm it' and the fragment 'No recovery.' are gone, and the output still says the loss does not recover",
+        "The aphoristic closer ('does not announce itself', 'It waits.') is gone",
+        "The output adds no cause beyond shard 117 / the scraping bug and still rules out the learning rate",
+        "Every prose sentence in the output has a subject and a finite verb (no fragments)"
+      ],
+      "checks": {
+        "required": [
+          "7B",
+          "41,000",
+          "1.92",
+          "6.8",
+          "300",
+          "2,000",
+          "3e-4",
+          "117",
+          "40,850",
+          "38%",
+          "0.9",
+          "14.2",
+          "150",
+          "base64",
+          "learning rate",
+          "recover"
+        ],
+        "forbidden": [
+          "(?m)^#+\\s*(What|Why|How|Where)\\b",
+          "tells the story",
+          "confirms? it",
+          "No recovery",
+          "announce itself",
+          "It waits"
+        ],
+        "header_level": "## "
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "pr-description-backoff",
+      "prompt": "Clean up the writing tics in this PR description. Don't touch the code bits.\n\n**The fix.** `retry_with_backoff()` now caps the delay at 30 s instead of growing without bound.\n\nTwo call sites were affected. `sync_inventory()` is the one that matters: it runs every 5 minutes, so an uncapped backoff after a 20-minute outage meant the next attempt could be scheduled 85 minutes out. The other one runs nightly and never hit the problem.\n\nChanges:\n- Cap delay at `MAX_BACKOFF_S = 30`\n- Add jitter of up to 10% so the 14 worker pods don't retry in lockstep\n- Add `test_backoff_caps_at_max`\n\nThe old backoff was an outage extender wearing a retry policy's clothes. Exponential growth is a promise you eventually can't keep.",
+      "input": "**The fix.** `retry_with_backoff()` now caps the delay at 30 s instead of growing without bound.\n\nTwo call sites were affected. `sync_inventory()` is the one that matters: it runs every 5 minutes, so an uncapped backoff after a 20-minute outage meant the next attempt could be scheduled 85 minutes out. The other one runs nightly and never hit the problem.\n\nChanges:\n- Cap delay at `MAX_BACKOFF_S = 30`\n- Add jitter of up to 10% so the 14 worker pods don't retry in lockstep\n- Add `test_backoff_caps_at_max`\n\nThe old backoff was an outage extender wearing a retry policy's clothes. Exponential growth is a promise you eventually can't keep.",
+      "expected_output": "This change makes `retry_with_backoff()` cap the delay at 30 s instead of letting it grow without bound.\n\nTwo call sites were affected. The problem showed up in `sync_inventory()`, which runs every 5 minutes, so an uncapped backoff after a 20-minute outage meant the next attempt could be scheduled 85 minutes out. The other affected call site runs nightly and never hit the problem.\n\nChanges:\n- Cap delay at `MAX_BACKOFF_S = 30`\n- Add jitter of up to 10% so the 14 worker pods don't retry in lockstep\n- Add `test_backoff_caps_at_max`\n\nThe old backoff was meant as a retry policy but in practice extended outages. Without a cap, the exponential delay eventually grows too long to be useful.",
+      "files": [],
+      "expectations": [
+        "Every number in the input (30 s, 5 minutes, 20-minute, 85 minutes, 10%, 14) appears in the output",
+        "All four inline code spans are preserved exactly: `retry_with_backoff()`, `sync_inventory()`, `MAX_BACKOFF_S = 30`, `test_backoff_caps_at_max`",
+        "The 'Changes:' line and its three bullet items are unchanged (list items are not treated as fragment cadence)",
+        "The bold label '**The fix.**' is gone and the first sentence is a full sentence",
+        "'is the one that matters' and 'The other one runs' are gone, and the nightly call site is still described",
+        "The dressed metaphor ('wearing', 'clothes') and the aphorism ('a promise you') are gone",
+        "The output contains no em dash, en dash used as a dash, or spaced double hyphen",
+        "Every prose sentence in the output has a subject and a finite verb (no fragments)"
+      ],
+      "checks": {
+        "required": [
+          "30 s",
+          "5 minutes",
+          "20-minute",
+          "85 minutes",
+          "10%",
+          "14",
+          "`retry_with_backoff()`",
+          "`sync_inventory()`",
+          "`MAX_BACKOFF_S = 30`",
+          "`test_backoff_caps_at_max`",
+          "nightly",
+          "Changes:\n- Cap delay at `MAX_BACKOFF_S = 30`\n- Add jitter of up to 10% so the 14 worker pods don't retry in lockstep\n- Add `test_backoff_caps_at_max`"
+        ],
+        "forbidden": [
+          "\\*\\*The fix\\.\\*\\*",
+          "one that matters",
+          "The other one runs",
+          "wearing",
+          "clothes",
+          "a promise you"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "clean-temperature-results",
+      "prompt": "Remove any writing tics from this before I send it to the team.\n\n## Results by temperature\n\nWe ran the 400-question set at four sampler temperatures (0.0, 0.3, 0.7 and 1.0), with three seeds each. Mean accuracy was 74.1% at 0.0, 73.8% at 0.3, 72.2% at 0.7 and 66.5% at 1.0. The standard deviation across seeds stayed below 0.9 points at every temperature except 1.0, where it reached 2.4 points.\n\nAccuracy changed by less than two points between 0.0 and 0.7, so we will use 0.3 for the remaining runs to keep some output diversity. We have not yet tested temperatures between 0.7 and 1.0, and the drop may start anywhere in that range.",
+      "input": "## Results by temperature\n\nWe ran the 400-question set at four sampler temperatures (0.0, 0.3, 0.7 and 1.0), with three seeds each. Mean accuracy was 74.1% at 0.0, 73.8% at 0.3, 72.2% at 0.7 and 66.5% at 1.0. The standard deviation across seeds stayed below 0.9 points at every temperature except 1.0, where it reached 2.4 points.\n\nAccuracy changed by less than two points between 0.0 and 0.7, so we will use 0.3 for the remaining runs to keep some output diversity. We have not yet tested temperatures between 0.7 and 1.0, and the drop may start anywhere in that range.",
+      "expected_output": "## Results by temperature\n\nWe ran the 400-question set at four sampler temperatures (0.0, 0.3, 0.7 and 1.0), with three seeds each. Mean accuracy was 74.1% at 0.0, 73.8% at 0.3, 72.2% at 0.7 and 66.5% at 1.0. The standard deviation across seeds stayed below 0.9 points at every temperature except 1.0, where it reached 2.4 points.\n\nAccuracy changed by less than two points between 0.0 and 0.7, so we will use 0.3 for the remaining runs to keep some output diversity. We have not yet tested temperatures between 0.7 and 1.0, and the drop may start anywhere in that range.",
+      "files": [],
+      "expectations": [
+        "The passage comes back unchanged (identical to the input apart from leading or trailing whitespace)",
+        "The output does not rewrite any sentence for general style, concision or word choice",
+        "Any added commentary is at most one short line saying no tics were found"
+      ],
+      "checks": {
+        "unchanged": true
+      }
+    }
+  ]
+}

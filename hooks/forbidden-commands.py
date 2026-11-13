@@ -1,0 +1,317 @@
+#!/usr/bin/env python3
+"""Block risky Bash commands, and Monitor in subagents: --global in every session, --daniel in /daniel.
+
+Matches the command text directly rather than through an `if: "Bash(x:*)"`
+filter. That filter uses the permission-rule matcher, which cannot prove what a
+command containing $(...) expands to and matches conservatively, so every rule
+fired on any command using command substitution.
+"""
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+GLOBAL_RULES = [
+    (r"\bjj\s+op(?:eration)?\s+restore\b",
+     "jj op restore is forbidden: it rewinds the whole repo operation log, "
+     "which un-registers the workspaces other agents are working in. Correct "
+     "your work forward with another squash, or apply the inverse of one named "
+     "operation with jj op revert <operation-id>."),
+    (r"\bjj\s+(?:undo|redo)\b",
+     "jj undo and jj redo are forbidden: they take no target and act on "
+     "whichever operation landed last in this shared repository, which is "
+     "usually another agent's. Correct your work forward with another squash, "
+     "or apply the inverse of one named operation with jj op revert "
+     "<operation-id>, taking the id from jj op log."),
+    (r"\bjj\s+op(?:eration)?\s+abandon\b",
+     "jj op abandon is forbidden: it discards operation history, and a "
+     "workspace whose recorded operation is discarded goes stale. jj workspace "
+     "update-stale then rebuilds that workspace as a recovery commit, which "
+     "leaves the change divergent and makes the work look lost. Nothing here "
+     "needs to prune the operation log."),
+    (r"\bjj\s+op(?:eration)?\s+revert\b(?![^;&|]*\b[0-9a-f]{4,}\b)",
+     "jj op revert with no operation id defaults to @, the newest operation in "
+     "this shared repository, which is usually another agent's. Pass the id of "
+     "your own operation, read from jj op log."),
+    (r"\bgit\s+stash\b",
+     "git stash is forbidden. This repository uses jj, and stashing moves files "
+     "out from under every other agent working here."),
+    (r"(?<![-\w.])g?(?:sleep\s+[\"']?(?:\.?\d|\$|inf)|timeout\s+(?:-\S+\s+(?:[A-Z]+\s+)?)*[\d$])"
+     r"|\bsleep\(\s*\.?\d",
+     "sleep, timeout and polling loops are forbidden. Run the command once and "
+     "read its output: in the foreground with timeout: 600000 for a long run, "
+     "or with run_in_background, which tells you when it exits."),
+]
+
+DANIEL_RULES = [
+    (r"\bjj\s+diff\b(?![^;&|]*(?:--git|--summary|--stat|--name-only|--types|(?:^|\s)-s(?=\s|$)))",
+     "jj diff must be run with --git. Its default format cannot be pasted as a "
+     "unified-diff hunk, which is what the report has to contain. Use jj diff "
+     "--git <path>, or --summary/--stat/--name-only when you only need the list "
+     "of files."),
+    (r"\bjj\s+new\b(?![^;&|]*--no-edit\b)",
+     "jj new without --no-edit moves the working copy of whichever workspace it "
+     "runs in, and workspaces here belong to other agents. To make room for a "
+     "commit that has to be new, run\n\n"
+     "    jj new --no-edit --insert-before @ -m \"<message>\"\n\n"
+     "from the integration workspace: it creates the commit at the branch tip, "
+     "rebases @ on top of it, and moves no working copy. Then squash the "
+     "handoff's files into it."),
+    (r"\bjj\s+(?:abandon|restore)\b",
+     "jj abandon and jj restore are forbidden: both discard content that only "
+     "exists in a working copy or a commit another agent is sitting on. Correct "
+     "work forward with another squash instead."),
+]
+RULES = GLOBAL_RULES + DANIEL_RULES
+
+
+SQUASH_WITHOUT_MESSAGE = re.compile(
+    r"\bjj\s+squash\b(?![^;&|]*(?:--use-destination-message\b|"
+    r"(?:^|\s)-u(?=\s|$)|(?:^|\s)-m(?=\s|$)|--message(?:=|\s)))"
+)
+SQUASH_MESSAGE = (
+    "jj squash must pass -u (--use-destination-message) so it does not open "
+    "an editor or replace the destination description. If the destination has "
+    "no description, pass -m with the requested message instead."
+)
+
+
+EDIT = re.compile(r"\bjj\s+edit\b")
+EDIT_MESSAGE = (
+    "jj edit is forbidden in a /daniel workspace: it moves that workspace's "
+    "working copy, and the workspace belongs to another agent. Work is parked "
+    "with skills/daniel/park-workspace.sh and integrated by /daniel-integrate, "
+    "neither of which needs to move a working copy. The integration workspace "
+    "may run it, to sit on a conflicted commit and resolve it."
+)
+
+
+UPDATE_STALE = re.compile(r"\bjj\s+workspace\s+update-stale\b")
+UPDATE_STALE_MESSAGE = (
+    "jj workspace update-stale is forbidden in a /daniel workspace. It "
+    "rewrites the files on disk to match a commit, so every edit made since "
+    "the last snapshot is discarded, and it can leave the change divergent, so "
+    "jj status and jj diff in this directory then report the empty side and "
+    "the work looks lost. The workspace going stale is expected and harmless: "
+    "it is deleted at cleanup. Read its content from the original workspace "
+    "with jj diff --git -r '<workspace-name>@'. If the change is already "
+    "divergent, name the side that holds the files with a change offset, "
+    "<change-id>/0 for the most recent and /1 for the one before.\n\n"
+    "Before anything else: copy every file you edited to your scratchpad "
+    "directory. Edits that were never snapshotted exist only on disk, and the "
+    "operation log cannot recover them. Then stop and report the stale state, "
+    "naming the files you edited."
+)
+
+
+REPO_PROFILE = Path(__file__).resolve().parent.parent / "skills" / "daniel" / "repo-profile.sh"
+
+
+def repo_rules(cwd):
+    if not cwd or not REPO_PROFILE.exists():
+        return []
+    result = subprocess.run([str(REPO_PROFILE), "dir", cwd], capture_output=True, text=True)
+    rules = Path(result.stdout.strip() or "/nonexistent") / "forbidden.json"
+    return [tuple(rule) for rule in json.loads(rules.read_text())] if rules.is_file() else []
+
+
+MONITOR_MESSAGE = (
+    "The Monitor tool is forbidden in subagents. Run the command in the foreground once and "
+    "read its output."
+)
+
+
+WORKSPACE_WRITE = re.compile(
+    r"\bjj\s+(?:[^\s|;&]+\s+)*?(?:squash|rebase|split|absorb|backout|commit|new"
+    r"|bookmark\s+(?:move|set|delete|forget|track|untrack)"
+    r"|git\s+(?:push|fetch))\b"
+)
+WORKSPACE_WRITE_MESSAGE = (
+    "This command rewrites shared repository state from inside a /daniel "
+    "workspace. Only the integration workspace may do that, and only under the "
+    "/daniel-integrate lock: two squashes landing concurrently leave the change "
+    "divergent and every other workspace stale, which is how work has been lost "
+    "here before. An impl workspace parks its finished work with "
+    "skills/daniel/park-workspace.sh, which describes the working-copy commit "
+    "and marks it with a handoff/<workspace-name> bookmark, and then stops. "
+    "/daniel-integrate squashes that bookmark into the feature line later."
+)
+
+
+WORKSPACE_TARGET = re.compile(
+    r"(?:\bcd\s+|(?:^|\s)(?:-R|--repository)[=\s]\s*)['\"]?[^\s;&|]*/daniel-workspaces/"
+)
+
+
+def in_daniel_workspace(command, cwd):
+    return "/daniel-workspaces/" in cwd + "/" or bool(WORKSPACE_TARGET.search(command))
+
+
+def denial(command, cwd="", extra=(), scope=None):
+    if scope != "global":
+        message = daniel_denial(command, cwd)
+        if message:
+            return message
+    if scope != "daniel":
+        return global_denial(command, extra)
+    return None
+
+
+def daniel_denial(command, cwd):
+    inside = in_daniel_workspace(command, cwd)
+    if inside and UPDATE_STALE.search(command):
+        return UPDATE_STALE_MESSAGE
+    if inside and EDIT.search(command):
+        return EDIT_MESSAGE
+    if inside and SQUASH_WITHOUT_MESSAGE.search(command) and WORKSPACE_WRITE.search(command):
+        return WORKSPACE_WRITE_MESSAGE
+    for pattern, message in DANIEL_RULES:
+        if re.search(pattern, command):
+            return message
+    if inside and WORKSPACE_WRITE.search(command):
+        return WORKSPACE_WRITE_MESSAGE
+    return None
+
+
+QUOTED = re.compile(r"'[^']*'|\"(?:[^\"\\]|\\.)*\"")
+
+
+def global_denial(command, extra):
+    if SQUASH_WITHOUT_MESSAGE.search(command):
+        return SQUASH_MESSAGE
+    for pattern, message in GLOBAL_RULES:
+        if re.search(pattern, command):
+            return message
+    unquoted = QUOTED.sub("''", command)
+    for pattern, message in extra:
+        if re.search(pattern, unquoted):
+            return message
+    return None
+
+
+def main():
+    try:
+        event = json.load(sys.stdin)
+    except ValueError:
+        return 0
+    scope = "global" if "--global" in sys.argv else "daniel" if "--daniel" in sys.argv else None
+    tool_input = event.get("tool_input") or {}
+    cwd = event.get("cwd", "")
+    if event.get("tool_name") == "Monitor":
+        message = MONITOR_MESSAGE if scope == "global" and event.get("agent_id") else None
+    else:
+        message = denial(
+            tool_input.get("command", ""),
+            cwd,
+            [] if scope == "daniel" else repo_rules(cwd),
+            scope,
+        )
+    if not message:
+        return 0
+    print(message, file=sys.stderr)
+    return 2
+
+
+def test():
+    assert denial("jj op restore abc") == RULES[0][1]
+    assert denial("jj op abandon ..abc") == RULES[2][1]
+    assert denial("jj workspace update-stale",
+                  "/x/daniel-workspaces/feat") == UPDATE_STALE_MESSAGE
+    assert denial("cd /x/daniel-workspaces/feat && jj workspace update-stale",
+                  "/x/repo") == UPDATE_STALE_MESSAGE
+    assert denial("jj workspace update-stale", "/x/repo") is None
+    # jj edit resolves conflicts from the integration workspace, and only there.
+    assert denial("jj edit xyz", "/x/daniel-workspaces/feat") == EDIT_MESSAGE
+    assert denial("jj edit xyz", "/x/repo") is None
+    assert denial("jj new") == RULES[7][1]
+    assert denial("jj new -m 'x' --insert-before @") == RULES[7][1]
+    assert denial("jj new --no-edit --insert-before @ -m 'feat: x'") is None
+    assert denial("jj abandon xyz") == RULES[8][1]
+    assert denial("jj restore src/a.ts") == RULES[8][1]
+    assert denial("git stash") == RULES[4][1]
+    assert denial("jj squash --into abc a.ts",
+                  "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj bookmark delete handoff/feat",
+                  "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj new --no-edit --insert-before @ -m 'x'",
+                  "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj git push", "/x/daniel-workspaces/feat") == WORKSPACE_WRITE_MESSAGE
+    # Parking is the one write an impl workspace makes, and it stays allowed.
+    assert denial("jj describe -m 'feat: x'", "/x/daniel-workspaces/feat") is None
+    assert denial("jj bookmark create handoff/feat -r @",
+                  "/x/daniel-workspaces/feat") is None
+    assert denial("jj status", "/x/daniel-workspaces/feat") is None
+    assert denial("jj workspace forget feat", "/x/daniel-workspaces/feat") is None
+    # Integration runs from the integration workspace, so the same squash passes.
+    assert denial("jj squash --from handoff/feat --into abc -u a.ts", "/x/repo") is None
+    assert denial("jj squash --into abc -u a.ts && rm -rf /x/daniel-workspaces/feat",
+                  "/x/repo") is None
+    assert denial("jj workspace forget feat && rm -rf ../daniel-workspaces/feat && jj git push",
+                  "/x/repo") is None
+    assert denial("jj -R /x/daniel-workspaces/feat squash --into abc -u a.ts",
+                  "/x/repo") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj --repository=/x/daniel-workspaces/feat git push",
+                  "/x/repo") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj undo") == RULES[1][1]
+    assert denial("jj redo") == RULES[1][1]
+    assert denial("jj op revert") == RULES[3][1]
+    assert denial("jj op revert --what repo") == RULES[3][1]
+    assert denial("jj op revert 197d348a40f5") is None
+    assert denial("jj operation revert d79d4492643c --what repo") is None
+    assert denial("jj diff") == RULES[6][1]
+    assert denial("jj diff -r @ src/a.ts") == RULES[6][1]
+    assert denial("jj diff --git src/a.ts") is None
+    assert denial("jj diff --summary -r 'ws@'") is None
+    assert denial("jj diff --name-only") is None
+    assert denial("jj diff -s") is None
+    assert denial("jj squash --into abc a.ts") == SQUASH_MESSAGE
+    assert denial("jj squash --into abc -u a.ts") is None
+    assert denial("jj squash --into abc --use-destination-message a.ts") is None
+    assert denial("jj squash --into abc -m 'message' a.ts") is None
+    extra = [(r"\bmake\s+slow\b", "use make fast")]
+    assert denial("make slow", extra=extra) == "use make fast"
+    assert denial("make slow") is None
+    assert denial("grep -n 'make slow' notes.md", extra=extra) is None
+    assert denial('rg "make slow" .', extra=extra) is None
+    ws = "/x/daniel-workspaces/feat"
+    assert denial("make test-integration", ws) is None
+    assert denial("WORKERS=32 make test-integration TESTS=tests/foo", ws) is None
+    assert denial("make test FILE=src/a_test.py", ws) is None
+    assert denial("make typecheck", ws) is None
+    assert denial("./bin/lint --fix", ws) is None
+    assert denial("cat tsconfig.json") is None
+    # The regression these rules used to hit: substitution is not a match.
+    assert denial("jj workspace add $(pwd)/../daniel-workspaces/feature") is None
+    assert denial("ws=$(pwd)/x; for f in $ws/*; do echo $f; done") is None
+    assert denial("make test-integration") is None
+    assert denial("jj op log") is None
+    assert denial("jj squash --into xykttnxu -u src/a.ts") is None
+    assert denial("sleep 15") == RULES[5][1]
+    assert denial("until curl -s x; do sleep 2; done") == RULES[5][1]
+    assert denial("sleep .5") == RULES[5][1]
+    assert denial("sleep \"$delay\"") == RULES[5][1]
+    assert denial("/bin/sleep infinity") == RULES[5][1]
+    assert denial("gsleep 1") == RULES[5][1]
+    assert denial("python3 -c 'import time; time.sleep(5)'") == RULES[5][1]
+    assert denial("timeout 30 make test") == RULES[5][1]
+    assert denial("gtimeout -s KILL 5s curl x") == RULES[5][1]
+    assert denial("timeout --signal=TERM $t yarn dev") == RULES[5][1]
+    assert denial("pytest --timeout 30 tests") is None
+    assert denial("curl --connect-timeout 5 x") is None
+    assert denial("grep -rn timeout src") is None
+    assert denial("grep -rn 'time.sleep(' src") is None
+    assert denial("jj new", scope="global") is None
+    assert denial("jj diff", scope="global") is None
+    assert denial("jj undo", scope="global") == RULES[1][1]
+    assert denial("jj undo", scope="daniel") is None
+    assert denial("jj squash --into abc a.ts", scope="global") == SQUASH_MESSAGE
+    assert denial("jj squash --into abc a.ts", scope="daniel") is None
+    assert denial("jj squash --into abc a.ts", ws, scope="daniel") == WORKSPACE_WRITE_MESSAGE
+    assert denial("jj workspace update-stale", ws, scope="global") is None
+    assert denial("make slow", extra=extra, scope="global") == "use make fast"
+    print("ok")
+
+
+if __name__ == "__main__":
+    sys.exit(test() if "--test" in sys.argv else main())

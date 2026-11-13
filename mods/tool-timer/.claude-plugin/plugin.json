@@ -1,0 +1,15 @@
+{
+  "name": "tool-timer",
+  "version": "0.1.0",
+  "description": "Shows how long a tool call took under its row when it ran past a threshold",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "thresholdSeconds": {
+      "type": "number",
+      "title": "Threshold (seconds)",
+      "description": "Show a tool call's duration when it took longer than this.",
+      "default": 5,
+      "min": 0
+    }
+  }
+}
