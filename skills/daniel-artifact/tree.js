@@ -27,7 +27,7 @@ for (const t of Object.values(TYPES)) {
   t.changed = !!t.change || t.fields.some(f => f[3] && (f[3].was || f[3].added));
 }
 
-function typeChip(name) { return chip(name, TYPES[name] && TYPES[name].kind || "model"); }
+function typeChip(name) { const t = TYPES[name]; const c = chip(name, t && t.kind || "model"); return t && t.title ? c.replace(/>[^<]*<\/b>$/, ">" + treeEsc(t.title) + "</b>") : c; }
 function typeHtml(s) { return treeEsc(s).replace(/\b[A-Za-z_][A-Za-z0-9_]*\b/g, w => TYPES[w] ? typeChip(w) : w); }
 function chipCode(html) { return html.replace(/<code>([A-Za-z_][A-Za-z0-9_]*)<\/code>/g, (m, w) => TYPES[w] ? typeChip(w) : m); }
 
@@ -37,6 +37,7 @@ function refOf(typeStr) {
 }
 function countOf(name) {
   const t = TYPES[name];
+  if (t.label) return t.label;
   if (t.values) return `${t.values.length} values`;
   if (t.members) return `${t.members.length} members`;
   return `${t.fields.length} fields`;
@@ -67,6 +68,7 @@ function makeNode(item, prefix, last, root) {
     + (fl.base ? `<span class="fl">from ${treeEsc(fl.base)}</span>` : "")
     + (fl.added ? `<span class="fl a">added</span>` : "")
     + (fl.was ? `<span class="fl a">was ${treeEsc(fl.was)}</span>` : "")
+    + (fl.tags ? fl.tags.map(([c, t]) => `<span class="fl ${c}">${treeEsc(t)}</span>`).join("") : "")
     + (item.d ? `<span class="d">${treeEsc(item.d)}</span>` : "")
     + (ref ? `<span class="cnt">${countOf(ref)}</span>` : "");
   node.appendChild(row);

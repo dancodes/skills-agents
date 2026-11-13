@@ -21,12 +21,19 @@ thing, and a Light / Dark switch in the header. The Quote Report DTO page in
    trees: paste it into the page script after base.html's script, define
    `TYPES` before it, then call `renderTree(el, [{ t: "Root" }, { sep: "label" }])`.
    `openLevel(el)` opens one more level. Rows open on click, to any depth.
-   `TYPES` shape: `{ Name: { doc, kind?, change?, fields?: [[name, type, desc, { opt, added, was, base }]], values?: [[key, desc]], members?: [[label, type]] } }`.
+   `TYPES` shape: `{ Name: { doc, kind?, change?, title?, label?, fields?: [[name, type, desc, { opt, added, was, base, tags }]], values?: [[key, desc]], members?: [[label, type]] } }`.
+   `title` shows in the chip in place of the key, `label` replaces the
+   `n fields` count, and `tags` is `[[class, text]]` drawn as `.fl` tags.
 3. **Interfaces use `<SKILL_DIR>/interface.md`.** To describe, browse or
    explain classes, models, DTOs, schemas or types, read it first and build
    a Boxes + Tree page with `boxes.js` and `tree.js`. The example is
    `examples/interface-boxes.html`.
-4. **Check once** at 1280×760 in light mode, then publish. Done when no text
+4. **Weighted hierarchies use `<SKILL_DIR>/treemap.md`.** Files in a change,
+   disk use, cost by service: anything where groups hold items that have a
+   size. Read it first and build a Map + List page with `treemap.js` and
+   `tree.js`: a DiskTree-style map with Depth, Size and Color switches. The
+   example is `examples/change-treemap.html`.
+5. **Check once** at 1280×760 in light mode, then publish. Done when no text
    clips and the page has no sideways scroll.
 
 ## Style

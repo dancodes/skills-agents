@@ -1,0 +1,774 @@
+<title>ORD-31 Change Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #f7f7f4;
+  --panel: #eeede7;
+  --surface: #ffffff;
+  --ink: #1a1914;
+  --muted: #4f4d46;
+  --faint: #7d7b73;
+  --line: #d3d1c8;
+  --accent: #c93f00;
+  --accent-soft: #f8dccb;
+  --crit: #b4231f;
+  --crit-soft: #f9dcd9;
+  --warn: #8a5a00;
+  --warn-soft: #f6e7c8;
+  --ok: #1d6b3a;
+  --ok-soft: #d9efe0;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+:root[data-mode="dark"] {
+  --bg: #14120b; --panel: #1b1912; --surface: #252219; --ink: #efeeea; --muted: #b3b1a9; --faint: #7f7d75; --line: #353229;
+  --accent: #ff7a3d; --accent-soft: #3d2416;
+  --crit: #ff8a80; --crit-soft: #3d1a17; --warn: #f0c060; --warn-soft: #3a2c10; --ok: #7fd6a0; --ok-soft: #173322;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.45 var(--sans); }
+button { font: inherit; color: inherit; }
+a { color: inherit; text-decoration-color: var(--faint); text-underline-offset: 2px; }
+a:hover { text-decoration-color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+code { font-family: var(--mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+
+.app { max-width: 1480px; margin: 0 auto; padding-bottom: 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding-block: 14px 12px; border-bottom: 1px solid var(--line); }
+.ttl { display: grid; gap: 2px; min-width: 0; }
+h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.sub b { color: var(--ink); font-weight: 500; }
+.right { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.sib { font-size: 12px; color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+.sib:hover { color: var(--ink); }
+.seg { display: inline-flex; padding: 2px; gap: 2px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.seg button { border: 0; background: transparent; padding: 4px 11px; border-radius: 6px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.seg button[aria-checked="true"], .seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+
+.view { display: grid; gap: 12px; padding-block: 12px; align-content: start; }
+.prose { max-width: 72ch; display: grid; gap: 10px; }
+.prose h2 { margin: 12px 0 0; font-size: 15px; font-weight: 600; letter-spacing: -0.005em; text-wrap: balance; }
+.prose h3 { margin: 8px 0 0; font-size: 13.5px; font-weight: 600; }
+.prose h4 { margin: 4px 0 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.prose p, .prose ul, .prose ol { margin: 0; line-height: 1.6; }
+.prose ul, .prose ol { padding-left: 20px; display: grid; gap: 3px; }
+.prose blockquote { margin: 0; padding: 4px 12px; border-left: 2px solid var(--line); color: var(--muted); }
+.eyebrow { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+hr.rule { border: 0; border-top: 1px solid var(--line); margin: 8px 0; width: 100%; }
+
+.pane, .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.pane-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
+.pane-h b { color: var(--ink); font-weight: 500; }
+.pane-b { padding: 8px 4px 10px; overflow-x: auto; }
+.body { overflow-x: auto; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.span2 { grid-column: 1 / -1; }
+.kv { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 9px 12px; font-size: 12px; }
+.kv div { display: grid; }
+.kv i { font-style: normal; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+.kv span { font-family: var(--mono); font-size: 12.5px; }
+.foot { padding: 7px 12px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); }
+
+table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 5px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-weight: 500; font-size: 11px; color: var(--muted); }
+th:first-child, td:first-child, td.l, th.l { text-align: left; }
+td.n { color: var(--faint); width: 1%; font-family: var(--mono); font-size: 11px; }
+td.mono { font-family: var(--mono); font-size: 11.5px; }
+td.wrap { white-space: normal; }
+td.blank { color: var(--faint); }
+td .s { color: var(--faint); font-size: 11px; }
+tr.tot td { font-weight: 600; border-top: 1px solid var(--ink); }
+
+.rules { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px; background: var(--panel); overflow: hidden; }
+.rules li { padding: 9px 12px; display: grid; gap: 2px; align-content: start; min-width: 0; box-shadow: 1px 0 0 var(--line), 0 1px 0 var(--line); }
+.rules b { font-size: 12px; font-weight: 600; }
+.rules span { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.legend > span { display: inline-flex; gap: 5px; align-items: center; }
+
+.callout { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 9px 12px; display: grid; gap: 3px; }
+.callout.crit { border-left-color: var(--crit); }
+.callout.ok { border-left-color: var(--ok); }
+.callout .label, .label { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.callout p { margin: 0; line-height: 1.55; }
+.codeblock { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.codeblock .file { padding: 6px 12px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.codeblock pre { margin: 0; padding: 10px 12px; overflow-x: auto; font-family: var(--mono); font-size: 12px; line-height: 1.55; }
+.codeblock .add { background: var(--ok-soft); color: var(--ok); display: inline-block; min-width: 100%; }
+.codeblock .del { background: var(--crit-soft); color: var(--crit); display: inline-block; min-width: 100%; }
+.codeblock .hl { background: var(--accent-soft); display: inline-block; min-width: 100%; }
+.codeblock .cmt { color: var(--faint); }
+
+.fl { font-family: var(--sans); font-size: 10.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 6px; background: var(--surface); white-space: nowrap; }
+.fl.a { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-soft); }
+.fl.crit { color: var(--crit); border-color: var(--crit-soft); background: var(--crit-soft); }
+.fl.warn { color: var(--warn); border-color: var(--warn-soft); background: var(--warn-soft); }
+.fl.ok { color: var(--ok); border-color: var(--ok-soft); background: var(--ok-soft); }
+
+.chip { --bl: 0.93; --bc: 0.04; --dl: 0.31; display: inline-block; font-family: var(--mono); font-weight: 500; font-size: 12px; line-height: 17px; padding: 0 6px; border-radius: 4px; white-space: nowrap;
+  background: oklch(var(--bl) var(--bc) var(--h, 250)); color: oklch(0.33 0.11 var(--h, 250)); border: 1px solid oklch(calc(var(--bl) - 0.12) calc(var(--bc) + 0.03) var(--h, 250)); }
+:root[data-mode="dark"] .chip { background: oklch(var(--dl) 0.06 var(--h, 250)); color: oklch(0.92 0.065 var(--h, 250)); border-color: oklch(calc(var(--dl) + 0.13) 0.075 var(--h, 250)); }
+.chip.k-enum { border-style: dashed; }
+.chip.k-union { border-style: dotted; border-width: 1.5px; }
+.chip.k-external { background: transparent; }
+.rules .chip, .legend .chip { font-size: 10.5px; line-height: 15px; padding: 0 4px; }
+.chip { --mk: oklch(0.7 0.11 var(--h, 250)); --wash: oklch(0.965 0.018 var(--h, 250)); }
+:root[data-mode="dark"] .chip { --mk: oklch(0.72 0.1 var(--h, 250)); --wash: oklch(0.27 0.025 var(--h, 250)); }
+:is(:root[data-chips="dot"], :root[data-chips="dotwash"], :root[data-chips="bar"]) .chip { background: none; border: 0; border-radius: 0; padding: 0; color: var(--ink); }
+:is(:root[data-chips="dot"], :root[data-chips="dotwash"]) .chip::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: var(--mk); vertical-align: 1px; }
+:is(:root[data-chips="dot"], :root[data-chips="dotwash"]) .chip.k-enum::before { border-radius: 1.5px; }
+:is(:root[data-chips="dot"], :root[data-chips="dotwash"]) .chip.k-union::before { border-radius: 1px; transform: rotate(45deg) scale(0.85); }
+:is(:root[data-chips="dot"], :root[data-chips="dotwash"]) .chip.k-external::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--mk); }
+:root[data-chips="dotwash"] .chip { background: var(--wash); border-radius: 4px; padding: 0 6px 0 5px; }
+:root[data-chips="bar"] .chip { border-left: 3px solid var(--mk); padding-left: 5px; }
+:root[data-chips="bar"] .chip.k-enum { border-left-style: dashed; }
+:root[data-chips="bar"] .chip:is(.k-union, .k-external) { border-left-style: dotted; }
+
+@media (max-width: 760px) {
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .rules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* page */
+.tbtn { display: inline-flex; gap: 6px; }
+.tbtn button { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 1px 8px; font-size: 11.5px; color: var(--muted); cursor: pointer; }
+.tbtn button:hover { color: var(--ink); }
+.row .ty { font-size: 11.5px; color: var(--faint); }
+.hint { margin: 0; font-size: 11.5px; color: var(--faint); }
+</style>
+
+
+<div class="app">
+  <header class="top">
+    <div class="ttl">
+      <h1>ORD-31 Change Map</h1>
+      <span class="sub">danielsorichetti/ord-31-partial-refunds · <b>kpwqzlrn</b> · <span id="totals"></span></span>
+    </div>
+    <div class="right">
+      <div class="seg" role="radiogroup" aria-label="Theme">
+        <button type="button" role="radio" data-mode="light" aria-checked="true">Light</button>
+        <button type="button" role="radio" data-mode="dark" aria-checked="false">Dark</button>
+      </div>
+      <div class="seg" role="radiogroup" aria-label="Name style" id="chip-picker">
+        <button type="button" role="radio" data-cs="dot" aria-checked="false" tabindex="-1">Dot</button>
+        <button type="button" role="radio" data-cs="dotwash" aria-checked="true">Dot + wash</button>
+        <button type="button" role="radio" data-cs="bar" aria-checked="false" tabindex="-1">Left bar</button>
+        <button type="button" role="radio" data-cs="chip" aria-checked="false" tabindex="-1">Chip</button>
+      </div>
+      <nav class="seg" role="tablist" aria-label="Views">
+        <button type="button" role="tab" data-view="map" aria-selected="true">Map</button>
+        <button type="button" role="tab" data-view="list" aria-selected="false">List</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="view" id="v-map">
+      <ul class="rules" id="facts"></ul>
+      <div id="map"></div>
+      <p class="hint">Click a group's title bar or a closed block to zoom in. Click a crumb or press Esc to zoom out. Hover a tile for what it does.</p>
+    </section>
+    <section class="view" id="v-list" hidden>
+      <div class="pane">
+        <div class="pane-h"><span><b>Files by job</b> · highest level first</span>
+          <span class="tbtn"><button type="button" data-act="open">Open one level</button><button type="button" data-act="all">Open all</button><button type="button" data-act="reset">Collapse</button></span>
+        </div>
+        <div class="pane-b" id="tree"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const CHIP_ORDER = ["RefundDialog", "RefundApi", "OrderPage", "Extras", "Checks", "RefundForm", "RefundSummary", "RefundEndpoint", "RefundService", "RefundStorage", "UiChecks", "ApiChecks"];
+
+const modeButtons = document.querySelectorAll("[data-mode]");
+function setMode(mode) {
+  document.documentElement.setAttribute("data-mode", mode);
+  modeButtons.forEach(b => b.setAttribute("aria-checked", String(b.dataset.mode === mode)));
+  try { localStorage.setItem("daniel-artifact-mode", mode); } catch (e) {}
+}
+let savedMode = "light";
+try { savedMode = localStorage.getItem("daniel-artifact-mode") || "light"; } catch (e) {}
+setMode(savedMode === "dark" ? "dark" : "light");
+modeButtons.forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+const chipButtons = [...document.querySelectorAll("#chip-picker [data-cs]")];
+const chipStyles = chipButtons.map(b => b.dataset.cs);
+function setChips(cs, focus) {
+  if (!chipStyles.includes(cs)) cs = "dotwash";
+  document.documentElement.setAttribute("data-chips", cs);
+  chipButtons.forEach(b => { const on = b.dataset.cs === cs; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); });
+  try { localStorage.setItem("daniel-artifact-chips", cs); } catch (e) {}
+}
+function stepChips(d, focus) {
+  const i = chipStyles.indexOf(document.documentElement.getAttribute("data-chips"));
+  setChips(chipStyles[(i + d + chipStyles.length) % chipStyles.length], focus);
+}
+let savedChips = "dotwash";
+try { savedChips = localStorage.getItem("daniel-artifact-chips") || "dotwash"; } catch (e) {}
+setChips(savedChips);
+chipButtons.forEach(b => b.addEventListener("click", () => setChips(b.dataset.cs, true)));
+document.addEventListener("keydown", e => {
+  const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+  if (!d || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+  const a = document.activeElement;
+  const inPicker = a && a.closest && a.closest("#chip-picker");
+  if (!inPicker && a && a !== document.body) return;
+  e.preventDefault();
+  stepChips(d, !!inPicker);
+});
+
+const CHIP_TIERS = [[0.94, 0.038, 0.3], [0.86, 0.075, 0.4], [0.79, 0.098, 0.23]];
+function chipStyle(name) {
+  let i = CHIP_ORDER.indexOf(name);
+  if (i < 0) { i = 0; for (const c of name) i = (i * 31 + c.charCodeAt(0)) >>> 0; }
+  const [bl, bc, dl] = CHIP_TIERS[i % 3];
+  return `--h:${Math.round((25 + i * 137.508) % 360)};--bl:${bl};--bc:${bc};--dl:${dl}`;
+}
+function chip(name, kind = "model") {
+  const esc = String(name).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  return `<b class="chip k-${kind}" style="${chipStyle(name)}">${esc}</b>`;
+}
+document.querySelectorAll("[data-chip]").forEach(el => { el.outerHTML = chip(el.dataset.chip, el.dataset.kind); });
+
+const tabs = document.querySelectorAll("[data-view]");
+const views = [...tabs].map(b => b.dataset.view);
+function show(v) {
+  if (!views.length) return;
+  if (!views.includes(v)) v = views[0];
+  tabs.forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === v)));
+  views.forEach(x => { document.getElementById("v-" + x).hidden = x !== v; });
+}
+tabs.forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.view; show(b.dataset.view); }));
+window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+show(location.hash.slice(1));
+
+const G = (key, label, doc, items) => ({ key, label, doc, items });
+const F = (name, st, add, del, d, tags = []) => ({ name, st, add, del, d, tags: st === "deleted" ? [["crit", "deleted"], ...tags] : tags });
+const NEW = "added", MOD = "modified", DEL = "deleted";
+const RN = [["", "rename"]];
+
+const DATA = [
+  G("RefundDialog", "Refund dialog", "The new partial refund flow the support agent sees.", [
+    G("RefundForm", "Form", "Pick line items and amounts, then confirm.", [
+      F("RefundDialog.tsx", NEW, 142, 0, "Dialog root: line items, amount, reason, confirm"),
+      F("RefundLineItems.tsx", NEW, 96, 0, "Checkbox per line item with a capped amount input"),
+      F("RefundReasonSelect.tsx", NEW, 38, 0, "Reason dropdown", [["warn", "copy"]]),
+      F("useRefundForm.ts", NEW, 88, 0, "Form state and the cap per line item"),
+    ]),
+    G("RefundSummary", "Summary", "What the customer gets back, before and after.", [
+      F("RefundSummary.tsx", NEW, 61, 0, "Totals, tax and fees returned"),
+      F("formatRefund.ts", MOD, 12, 4, "Reuses the money formatter", [["ok", "reuse"]]),
+    ]),
+  ]),
+  G("RefundApi", "Refund API", "The server side: validate, call the payment provider, record the refund.", [
+    G("RefundEndpoint", "Endpoint", "One POST per refund.", [
+      F("refunds.controller.ts", NEW, 74, 0, "POST /orders/:id/refunds"),
+      F("refund.schema.ts", NEW, 52, 0, "Request and response shapes"),
+    ]),
+    G("RefundService", "Service", "The rules a refund must pass.", [
+      F("refund.service.ts", NEW, 131, 0, "Caps, idempotency key, provider call"),
+      F("paymentProvider.ts", MOD, 28, 9, "Adds refund() beside charge()"),
+      F("ledger.ts", MOD, 19, 2, "Writes the negative ledger row"),
+    ]),
+    G("RefundStorage", "Storage", "Where a refund is kept.", [
+      F("0042_refunds.sql", NEW, 33, 0, "refunds table and its index"),
+      F("refund.repository.ts", NEW, 47, 0, "Insert and list by order", [["warn", "copy"]]),
+    ]),
+  ]),
+  G("OrderPage", "Order page", "Small changes where the order already shows money.", [
+    F("OrderTimeline.tsx", MOD, 22, 6, "Shows refunds in the timeline"),
+    F("OrderActions.tsx", MOD, 9, 3, "Refund button, renamed from Cancel"),
+    F("CancelOrderButton.tsx", DEL, 0, 41, "Replaced by the Refund button"),
+    F("orderLabels.ts", MOD, 4, 4, "Cancel → Refund", RN),
+    F("helpText.json", MOD, 2, 2, "Cancel → Refund", RN),
+  ]),
+  G("Extras", "Extras", "Changes not needed for ORD-31.", [
+    F("currency.ts", MOD, 14, 8, "Rounds yen to whole units", [["warn", "off-ticket"]]),
+    F("package.json", MOD, 1, 1, "Bumps the payment SDK"),
+    F("README.md", MOD, 26, 0, "Documents the refund flow"),
+  ]),
+  G("Checks", "Checks", "What checks each job.", [
+    G("UiChecks", "Dialog tests", "Unit tests next to the dialog.", [
+      F("RefundDialog.test.tsx", NEW, 118, 0, "Caps, reasons, confirm"),
+      F("useRefundForm.test.ts", NEW, 64, 0, "Cap per line item"),
+      F("OrderActions.test.tsx", MOD, 3, 3, "Button label", RN),
+    ]),
+    G("ApiChecks", "API tests", "Service and endpoint tests.", [
+      F("refund.service.test.ts", NEW, 156, 0, "Caps, idempotency, provider errors"),
+      F("refunds.e2e.test.ts", NEW, 92, 0, "Full POST against a test provider"),
+      F("currency.test.ts", MOD, 11, 0, "Yen rounding", [["warn", "off-ticket"]]),
+    ]),
+  ]),
+];
+const ROOT = { label: "All files", items: DATA };
+
+document.head.insertAdjacentHTML("beforeend", `<style>
+.tm-pane { display: grid; min-width: 0; }
+.tm-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; padding: 6px 12px; border-bottom: 1px solid var(--line); }
+.tm-crumbs { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: 12px; min-width: 0; color: var(--muted); }
+.tm-crumbs b { color: var(--ink); font-weight: 600; }
+.tm-crumbs .tm-cs { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.tm-crumbs button { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; font-size: 12px; }
+.tm-crumbs button:hover { text-decoration: underline; }
+.tm-crumbs i { font-style: normal; color: var(--faint); }
+.tm-ctrls { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.tm-ctrls .tm-lbl { font-size: 11px; color: var(--faint); }
+.tm-ctrls .seg button { padding: 2px 8px; font-size: 11.5px; }
+.tm-stage { position: relative; margin: 6px; overflow: hidden; }
+.tm-grp, .tm-tile, .tm-blk { position: absolute; box-sizing: border-box; overflow: hidden; }
+.tm-grp { border-radius: 4px; border: 1px solid oklch(0.78 0.04 var(--h)); background: oklch(0.955 0.012 var(--h)); }
+.tm-grp.tm-d2, .tm-grp.tm-d3 { background: oklch(0.975 0.006 var(--h)); border-color: oklch(0.84 0.03 var(--h)); }
+:root[data-mode="dark"] .tm-grp { background: oklch(0.22 0.015 var(--h)); border-color: oklch(0.38 0.04 var(--h)); }
+:root[data-mode="dark"] .tm-grp.tm-d2, :root[data-mode="dark"] .tm-grp.tm-d3 { background: oklch(0.245 0.012 var(--h)); border-color: oklch(0.33 0.03 var(--h)); }
+.tm-gh { all: unset; box-sizing: border-box; position: absolute; left: 0; right: 0; top: 0; height: 19px; display: flex; align-items: center; gap: 5px; padding: 0 6px; cursor: zoom-in; overflow: hidden; white-space: nowrap; }
+.tm-gh:hover .tm-gl { text-decoration: underline; }
+.tm-gh:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tm-gd { width: 7px; height: 7px; border-radius: 50%; flex: none; background: oklch(0.62 0.12 var(--h)); }
+.tm-gl { font-size: 11.5px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 0; }
+.tm-gs { font-family: var(--mono); font-size: 10.5px; color: var(--faint); flex: 0 100 auto; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tm-tile { border: 1px solid var(--bg); border-radius: 3px; padding: 2px 4px; display: flex; flex-direction: column; }
+.tm-tile:hover, .tm-blk:hover { outline: 2px solid var(--ink); outline-offset: -2px; z-index: 2; }
+.tm-tile .tm-nm { font-family: var(--mono); font-size: 11px; line-height: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-tile .tm-ln { font-family: var(--mono); font-size: 10.5px; line-height: 13px; color: var(--muted); white-space: nowrap; }
+.tm-blk { border-radius: 4px; border: 1px solid oklch(0.72 0.07 var(--h)); background: oklch(0.9 0.045 var(--h)); padding: 4px 7px 10px; cursor: zoom-in; display: flex; flex-direction: column; gap: 1px; }
+:root[data-mode="dark"] .tm-blk { background: oklch(0.33 0.055 var(--h)); border-color: oklch(0.5 0.07 var(--h)); }
+.tm-blk .tm-bl { font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-blk .tm-bs { font-family: var(--mono); font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-blk .tm-bd { font-size: 11px; line-height: 1.35; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; margin-top: 2px; }
+.tm-blk .tm-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; display: flex; border-top: 1px solid var(--bg); }
+.tm-blk .tm-bar i { height: 100%; box-shadow: inset -1px 0 0 var(--bg); }
+.tm-hue.tm-t0 { background: oklch(0.86 0.06 var(--h)); }
+.tm-hue.tm-t1 { background: oklch(0.81 0.075 var(--h)); }
+.tm-hue.tm-t2 { background: oklch(0.9 0.045 var(--h)); }
+:root[data-mode="dark"] .tm-hue.tm-t0 { background: oklch(0.4 0.07 var(--h)); }
+:root[data-mode="dark"] .tm-hue.tm-t1 { background: oklch(0.35 0.07 var(--h)); }
+:root[data-mode="dark"] .tm-hue.tm-t2 { background: oklch(0.45 0.06 var(--h)); }
+.tm-ok { background: var(--ok-soft); } .tm-crit { background: var(--crit-soft); } .tm-warn { background: var(--warn-soft); }
+.tm-acc { background: var(--accent-soft); } .tm-grey { background: var(--line); } .tm-plain { background: var(--surface); }
+.tm-tile.tm-ok { box-shadow: inset 3px 0 0 var(--ok); } .tm-tile.tm-crit { box-shadow: inset 3px 0 0 var(--crit); }
+.tm-tile.tm-warn { box-shadow: inset 3px 0 0 var(--warn); } .tm-tile.tm-acc { box-shadow: inset 3px 0 0 var(--accent); }
+.tm-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 7px 12px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
+.tm-legend > span { display: inline-flex; gap: 5px; align-items: center; }
+.tm-sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); }
+.tm-legend .tm-sz { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.tm-tip { position: absolute; z-index: 10; max-width: 340px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; box-shadow: 0 6px 20px rgb(0 0 0 / 0.14); pointer-events: none; display: grid; gap: 3px; }
+.tm-tip .tm-tp { font-size: 11px; color: var(--faint); }
+.tm-tip .tm-tn { font-family: var(--mono); font-size: 12.5px; font-weight: 500; overflow-wrap: anywhere; }
+.tm-tip .tm-tl { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.tm-tip .tm-td { font-size: 12px; line-height: 1.45; }
+.tm-tip .tm-tt { display: flex; flex-wrap: wrap; gap: 4px; }
+</style>`);
+
+function renderTreemap(el, opts) {
+  const o = Object.assign({
+    depths: [1, 2, "all"],
+    depth: "all",
+    height: "max(460px, calc(100vh - 250px))",
+    unit: ["item", "items"],
+    leafLine: () => "",
+    groupLine: null,
+    leafTip: () => "",
+  }, opts);
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const root = o.root;
+  (function link(g, top) {
+    g.items.forEach((it, i) => {
+      it.parent = g;
+      it.top = top || (it.items ? it : null);
+      it.tier = it.items ? i % 3 : (g.tier || 0);
+      if (it.items) link(it, it.top);
+    });
+  })(root, null);
+
+  let size = o.sizes[0], color = o.colors[0], focus = root;
+  let maxDepth = o.depth === "all" ? Infinity : o.depth;
+  const hueOf = key => +(chipStyle(key).match(/--h:(\d+)/) || [0, 250])[1];
+  const leafHue = l => hueOf((l.top || l.parent).key);
+  const leafVal = l => Math.max(+size.value(l) || 0, 0);
+  const val = n => n.items ? n.items.reduce((a, c) => a + val(c), 0) : leafVal(n);
+  const leavesOf = n => { const out = []; (function w(g) { g.items.forEach(i => i.items ? w(i) : out.push(i)); })(n); return out; };
+  const count = n => { const k = leavesOf(n).length; return `${k} ${o.unit[k === 1 ? 0 : 1]}`; };
+  const groupLine = n => o.groupLine ? o.groupLine(n, leavesOf(n)) : count(n);
+  const leafCls = l => color.cls ? color.cls(l) || "tm-plain" : "tm-hue tm-t" + l.tier;
+  const trail = n => { const p = []; for (let x = n.parent; x && x !== root; x = x.parent) p.unshift(x.label); return p.join(" › "); };
+  const tagsHtml = tags => tags.length ? `<div class="tm-tt">${tags.map(([c, s]) => `<span class="fl ${c}">${esc(s)}</span>`).join(" ")}</div>` : "";
+
+  const segHtml = (name, list, cur, lab) => `<span class="tm-lbl">${name}</span><span class="seg" role="radiogroup" aria-label="${name}">`
+    + list.map(x => `<button type="button" role="radio" data-k="${name}" data-v="${esc(x.id ?? x)}" aria-checked="${(x.id ?? x) === cur}">${esc(lab(x))}</button>`).join("") + `</span>`;
+  el.classList.add("pane", "tm-pane");
+  el.innerHTML = `<div class="tm-head"><span class="tm-crumbs"></span><span class="tm-ctrls">`
+    + (o.depths.length > 1 ? segHtml("Depth", o.depths, o.depth, d => d === "all" ? "All" : d) : "")
+    + (o.sizes.length > 1 ? segHtml("Size", o.sizes, size.id, s => s.label) : "")
+    + (o.colors.length > 1 ? segHtml("Color", o.colors, color.id, c => c.label) : "")
+    + `</span></div><div class="tm-stage" style="height:${o.height}"><div class="tm-tip" hidden></div></div><div class="tm-legend"></div>`;
+  const stage = el.querySelector(".tm-stage"), tip = el.querySelector(".tm-tip");
+
+  function worst(row, side) {
+    const s = row.reduce((a, b) => a + b, 0);
+    return Math.max(side * side * Math.max(...row) / (s * s), (s * s) / (side * side * Math.min(...row)));
+  }
+  function layoutRow(row, r, out) {
+    const s = row.reduce((a, b) => a + b, 0);
+    if (r.w >= r.h) {
+      const cw = s / r.h; let y = r.y;
+      row.forEach(a => { out.push({ x: r.x, y, w: cw, h: a / cw }); y += a / cw; });
+      return { x: r.x + cw, y: r.y, w: r.w - cw, h: r.h };
+    }
+    const rh = s / r.w; let x = r.x;
+    row.forEach(a => { out.push({ x, y: r.y, w: a / rh, h: rh }); x += a / rh; });
+    return { x: r.x, y: r.y + rh, w: r.w, h: r.h - rh };
+  }
+  function squarify(values, rect) {
+    const total = values.reduce((a, b) => a + b, 0);
+    if (total <= 0 || rect.w <= 0 || rect.h <= 0) return values.map(() => null);
+    const areas = values.map(v => v * rect.w * rect.h / total);
+    const out = []; let r = { ...rect }, row = [], i = 0;
+    while (i < areas.length) {
+      const side = Math.min(r.w, r.h);
+      if (!row.length || worst([...row, areas[i]], side) <= worst(row, side)) { row.push(areas[i]); i++; }
+      else { r = layoutRow(row, r, out); row = []; }
+    }
+    if (row.length) layoutRow(row, r, out);
+    return out;
+  }
+
+  const box = (cls, r, hue) => {
+    const d = document.createElement("div");
+    d.className = cls;
+    d.style.cssText = `left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;--h:${hue}`;
+    return d;
+  };
+  const HEAD = 19, PAD = 3;
+  function draw(n, r, depth, frag) {
+    if (!r || r.w < 1 || r.h < 1) return;
+    if (!n.items) {
+      const d = box("tm-tile " + leafCls(n), r, leafHue(n));
+      d.leaf = n;
+      if (r.w > 34 && r.h > 15) {
+        const line = r.w > 70 && r.h > 32 ? o.leafLine(n) : "";
+        d.innerHTML = `<span class="tm-nm">${esc(n.name)}</span>` + (line ? `<span class="tm-ln">${esc(line)}</span>` : "");
+      }
+      frag.appendChild(d);
+      return;
+    }
+    if (n !== focus && depth >= maxDepth) return drawBlock(n, r, frag);
+    let inner = r;
+    if (n !== focus) {
+      const g = box("tm-grp tm-d" + Math.min(depth, 3), r, hueOf((n.top || n).key));
+      if (r.w > 44 && r.h > HEAD + 10) {
+        g.innerHTML = `<button type="button" class="tm-gh" title="Zoom into ${esc(n.label)}"><span class="tm-gd"></span><span class="tm-gl">${esc(n.label)}</span><span class="tm-gs">${esc(groupLine(n))}</span></button>`;
+        g.firstChild.addEventListener("click", () => zoom(n));
+        inner = { x: r.x + PAD, y: r.y + HEAD, w: r.w - PAD * 2, h: r.h - HEAD - PAD };
+      } else {
+        inner = { x: r.x + 1, y: r.y + 1, w: r.w - 2, h: r.h - 2 };
+      }
+      frag.appendChild(g);
+    }
+    const kids = n.items.filter(k => val(k) > 0).sort((a, b) => val(b) - val(a));
+    const rects = squarify(kids.map(val), inner);
+    kids.forEach((k, i) => draw(k, rects[i], depth + 1, frag));
+  }
+  function drawBlock(n, r, frag) {
+    const b = box("tm-blk", r, hueOf((n.top || n).key));
+    b.group = n;
+    const leaves = leavesOf(n).filter(l => leafVal(l) > 0), total = leaves.reduce((a, l) => a + leafVal(l), 0);
+    const bar = leaves.map(l => `<i class="${leafCls(l)}" style="width:${(leafVal(l) / total * 100).toFixed(3)}%;--h:${leafHue(l)}"></i>`).join("");
+    b.innerHTML = (r.w > 40 && r.h > 22 ? `<span class="tm-bl">${esc(n.label)}</span>` : "")
+      + (r.w > 70 && r.h > 40 ? `<span class="tm-bs">${esc(groupLine(n))}</span>` : "")
+      + (n.doc && r.w > 140 && r.h > 80 ? `<span class="tm-bd">${esc(n.doc)}</span>` : "")
+      + `<span class="tm-bar">${bar}</span>`;
+    b.addEventListener("click", () => zoom(n));
+    frag.appendChild(b);
+  }
+
+  function render() {
+    stage.querySelectorAll(".tm-tile, .tm-grp, .tm-blk").forEach(e => e.remove());
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    const frag = document.createDocumentFragment();
+    draw(focus, { x: 0, y: 0, w, h }, 0, frag);
+    stage.insertBefore(frag, tip);
+    const path = [];
+    for (let n = focus; n; n = n.parent) path.unshift(n);
+    const crumbs = el.querySelector(".tm-crumbs");
+    crumbs.innerHTML = path.map((n, i) => i === path.length - 1
+      ? `<b>${esc(n.label)}</b> <span class="tm-cs">${esc(groupLine(n))}</span>`
+      : `<button type="button" data-i="${i}">${esc(n.label)}</button><i>›</i>`).join("");
+    crumbs.querySelectorAll("button").forEach(b => b.addEventListener("click", () => zoom(path[+b.dataset.i])));
+    const legend = color.legend
+      ? color.legend.map(([c, l]) => `<span><i class="tm-sw ${c}"></i>${esc(l)}</span>`)
+      : root.items.filter(g => g.items).map(g => `<span><i class="tm-sw tm-hue tm-t0" style="--h:${hueOf(g.key)}"></i>${esc(g.label)}</span>`);
+    el.querySelector(".tm-legend").innerHTML = legend.join("") + `<span class="tm-sz">Tile area = ${esc(size.note || size.label)}</span>`;
+  }
+  function zoom(n) { focus = n; tip.hidden = true; render(); }
+
+  function placeTip(e) {
+    tip.hidden = false;
+    const b = stage.getBoundingClientRect();
+    let x = e.clientX - b.left + 14, y = e.clientY - b.top + 14;
+    if (x + tip.offsetWidth > b.width - 4) x = e.clientX - b.left - tip.offsetWidth - 14;
+    if (y + tip.offsetHeight > b.height - 4) y = e.clientY - b.top - tip.offsetHeight - 14;
+    tip.style.left = Math.max(4, x) + "px";
+    tip.style.top = Math.max(4, y) + "px";
+  }
+  function leafTipHtml(l) {
+    const t = trail(l), line = o.leafLine(l);
+    return (t ? `<div class="tm-tp">${esc(t)}</div>` : "") + `<div class="tm-tn">${esc(l.name)}</div>`
+      + (line ? `<div class="tm-tl">${esc(line)}</div>` : "") + o.leafTip(l)
+      + (l.d ? `<div class="tm-td">${esc(l.d)}</div>` : "") + tagsHtml(l.tags || []);
+  }
+  function groupTipHtml(n) {
+    const counts = {};
+    leavesOf(n).forEach(l => (l.tags || []).forEach(([c, s]) => { counts[s] = counts[s] || [c, 0]; counts[s][1]++; }));
+    const t = trail(n);
+    return (t ? `<div class="tm-tp">${esc(t)}</div>` : "") + `<div class="tm-tn">${esc(n.label)}</div>`
+      + `<div class="tm-tl">${esc(groupLine(n))}</div>` + (n.doc ? `<div class="tm-td">${esc(n.doc)}</div>` : "")
+      + tagsHtml(Object.entries(counts).map(([s, [c, k]]) => [c, `${s} ×${k}`])) + `<div class="tm-tp">Click to zoom in</div>`;
+  }
+  stage.addEventListener("mousemove", e => {
+    const t = e.target.closest(".tm-tile, .tm-blk");
+    if (!t) { tip.hidden = true; return; }
+    tip.innerHTML = t.leaf ? leafTipHtml(t.leaf) : groupTipHtml(t.group);
+    placeTip(e);
+  });
+  stage.addEventListener("mouseleave", () => { tip.hidden = true; });
+  stage.addEventListener("click", e => {
+    const t = e.target.closest(".tm-tile");
+    if (t && t.leaf && t.leaf.parent !== focus) zoom(t.leaf.parent);
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && focus.parent && el.offsetParent) zoom(focus.parent);
+  });
+  el.querySelectorAll(".tm-ctrls [data-k]").forEach(b => b.addEventListener("click", () => {
+    el.querySelectorAll(`.tm-ctrls [data-k="${b.dataset.k}"]`).forEach(x => x.setAttribute("aria-checked", String(x === b)));
+    const v = b.dataset.v;
+    if (b.dataset.k === "Depth") maxDepth = v === "all" ? Infinity : +v;
+    if (b.dataset.k === "Size") size = o.sizes.find(s => s.id === v);
+    if (b.dataset.k === "Color") color = o.colors.find(c => c.id === v);
+    render();
+  }));
+  new ResizeObserver(render).observe(stage);
+  render();
+  return { render, zoom, root };
+}
+
+function treemapTypes(root, leafRow, countLabel = (g, n) => `${n} items`) {
+  const types = {};
+  const tally = g => {
+    let n = 0;
+    g.items.forEach(it => { n += it.items ? tally(it) : 1; });
+    types[g.key] = {
+      title: g.label,
+      doc: g.doc,
+      label: countLabel(g, n),
+      fields: g.items.map(it => it.items ? ["", it.key, "", {}] : leafRow(it)),
+    };
+    return n;
+  };
+  root.items.forEach(tally);
+  return types;
+}
+
+
+const TYPES = treemapTypes(
+  ROOT,
+  l => [l.name, `+${l.add} −${l.del}`, l.d, { added: l.st === NEW, tags: l.tags }],
+  g => { const ls = []; (function w(x) { x.items.forEach(i => i.items ? w(i) : ls.push(i)); })(g);
+    return `${ls.length} file${ls.length === 1 ? "" : "s"} · +${ls.reduce((a, l) => a + l.add, 0)} −${ls.reduce((a, l) => a + l.del, 0)}`; });
+
+document.head.insertAdjacentHTML("beforeend", `<style>
+.row { display: flex; align-items: center; gap: 6px; min-height: 23px; padding-inline: 6px 8px; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; border-radius: 4px; min-width: 0; }
+.row.x { cursor: pointer; }
+.row.x:hover { background: var(--surface); }
+.row.root { font-weight: 500; }
+.row.doc { font-family: var(--sans); font-size: 11.5px; color: var(--faint); }
+.row.doc .g { font-family: var(--mono); font-size: 12.5px; }
+.car { width: 16px; flex: none; color: var(--faint); font-size: 14px; line-height: 1; text-align: center; }
+.row.x .car { color: var(--accent); }
+.g { color: var(--faint); white-space: pre; }
+.f, .ty { color: var(--muted); }
+.row.root .chip { font-weight: 600; }
+.row.x:hover .chip { border-color: oklch(0.55 0.1 var(--h)); }
+.row[aria-expanded="true"] .chip { box-shadow: 0 0 0 1px oklch(0.5 0.11 var(--h)); }
+.m { color: var(--accent); font-size: 11.5px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; display: inline-block; }
+.d { color: var(--faint); font-family: var(--sans); font-size: 11.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.row > :not(.d) { flex: none; }
+.row.doc > span:last-child { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cnt { margin-left: auto; padding-left: 14px; color: var(--faint); font-size: 11px; font-variant-numeric: tabular-nums; }
+.sep { margin: 8px 12px 4px; padding-top: 6px; border-top: 1px dashed var(--line); font-size: 11px; color: var(--faint); }
+</style>`);
+
+const treeEsc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+for (const t of Object.values(TYPES)) {
+  t.fields = t.fields || [];
+  t.changed = !!t.change || t.fields.some(f => f[3] && (f[3].was || f[3].added));
+}
+
+function typeChip(name) { const t = TYPES[name]; const c = chip(name, t && t.kind || "model"); return t && t.title ? c.replace(/>[^<]*<\/b>$/, ">" + treeEsc(t.title) + "</b>") : c; }
+function typeHtml(s) { return treeEsc(s).replace(/\b[A-Za-z_][A-Za-z0-9_]*\b/g, w => TYPES[w] ? typeChip(w) : w); }
+function chipCode(html) { return html.replace(/<code>([A-Za-z_][A-Za-z0-9_]*)<\/code>/g, (m, w) => TYPES[w] ? typeChip(w) : m); }
+
+function refOf(typeStr) {
+  const words = String(typeStr).match(/\b[A-Za-z_][A-Za-z0-9_]*\b/g) || [];
+  return words.find(w => TYPES[w] && (TYPES[w].fields.length || TYPES[w].values || TYPES[w].members)) || null;
+}
+function countOf(name) {
+  const t = TYPES[name];
+  if (t.label) return t.label;
+  if (t.values) return `${t.values.length} values`;
+  if (t.members) return `${t.members.length} members`;
+  return `${t.fields.length} fields`;
+}
+function childrenOf(name) {
+  const t = TYPES[name];
+  if (t.values) return t.values.map(([k, v]) => ({ f: k, ty: "", d: v }));
+  if (t.members) return t.members.map(([label, m]) => ({ f: label, ty: m, d: "" }));
+  return t.fields.map(([f, ty, d, fl]) => ({ f, ty, d, fl: fl || {} }));
+}
+
+function makeNode(item, prefix, last, root) {
+  const node = document.createElement("div");
+  const ref = refOf(item.ty);
+  const fl = item.fl || {};
+  const list = /^list\[/.test(item.ty);
+  const nullable = /\| None/.test(item.ty);
+  const shown = item.ty.replace(/^list\[(.*)\]$/, "$1").replace(/ \| None$/, "");
+  const row = document.createElement("div");
+  row.className = "row" + (root ? " root" : "") + (ref ? " x" : "");
+  row.innerHTML = `<span class="car">${ref ? "▸" : ""}</span><span class="g">${root ? "" : prefix + (last ? "└─ " : "├─ ")}</span>`
+    + (item.f ? `<span class="f">${treeEsc(item.f)}</span>` : "")
+    + (shown ? `<span class="ty">${typeHtml(shown)}</span>` : "")
+    + (list ? `<span class="m">[]</span>` : "")
+    + (nullable ? `<span class="m">?</span>` : "")
+    + (ref && TYPES[ref].changed ? `<i class="dot" title="Changed"></i>` : "")
+    + (fl.opt ? `<span class="fl">optional</span>` : "")
+    + (fl.base ? `<span class="fl">from ${treeEsc(fl.base)}</span>` : "")
+    + (fl.added ? `<span class="fl a">added</span>` : "")
+    + (fl.was ? `<span class="fl a">was ${treeEsc(fl.was)}</span>` : "")
+    + (fl.tags ? fl.tags.map(([c, t]) => `<span class="fl ${c}">${treeEsc(t)}</span>`).join("") : "")
+    + (item.d ? `<span class="d">${treeEsc(item.d)}</span>` : "")
+    + (ref ? `<span class="cnt">${countOf(ref)}</span>` : "");
+  node.appendChild(row);
+  if (!ref) return node;
+  row.tabIndex = 0;
+  row.setAttribute("role", "button");
+  row.setAttribute("aria-expanded", "false");
+  const kids = document.createElement("div");
+  kids.hidden = true;
+  node.appendChild(kids);
+  const childPrefix = root ? "" : prefix + (last ? "   " : "│  ");
+  node.toggle = open => {
+    const want = open ?? kids.hidden;
+    if (want && !kids.childElementCount) {
+      const t = TYPES[ref];
+      if (t.doc) {
+        const doc = document.createElement("div");
+        doc.className = "row doc";
+        doc.innerHTML = `<span class="car"></span><span class="g">${childPrefix}│  </span><span>${treeEsc(t.doc)}</span>`;
+        kids.appendChild(doc);
+      }
+      const items = childrenOf(ref);
+      items.forEach((it, i) => kids.appendChild(makeNode(it, childPrefix, i === items.length - 1, false)));
+    }
+    kids.hidden = !want;
+    row.setAttribute("aria-expanded", String(want));
+    row.querySelector(".car").textContent = want ? "▾" : "▸";
+  };
+  row.addEventListener("click", () => node.toggle());
+  row.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); node.toggle(); }
+    if (e.key === "ArrowRight") node.toggle(true);
+    if (e.key === "ArrowLeft") node.toggle(false);
+  });
+  return node;
+}
+
+function renderTree(el, roots) {
+  el.innerHTML = "";
+  for (const r of roots) {
+    if (r.sep) { el.insertAdjacentHTML("beforeend", `<div class="sep">${treeEsc(r.sep)}</div>`); continue; }
+    const n = makeNode({ f: "", ty: r.t, d: "" }, "", true, true);
+    el.appendChild(n);
+    n.toggle(true);
+  }
+}
+
+function openLevel(el) {
+  const closed = [];
+  const walk = parent => {
+    for (const n of parent.children) {
+      if (!n.toggle) continue;
+      const kids = n.children[1];
+      if (kids.hidden) closed.push(n); else walk(kids);
+    }
+  };
+  walk(el);
+  closed.forEach(n => n.toggle(true));
+}
+
+
+const leaves = [];
+(function walk(g) { g.items.forEach(i => i.items ? walk(i) : leaves.push(i)); })(ROOT);
+const sum = (xs, k) => xs.reduce((a, x) => a + x[k], 0);
+const fmt = n => n.toLocaleString("en-US");
+const lines = xs => `+${fmt(sum(xs, "add"))} −${fmt(sum(xs, "del"))}`;
+const has = (l, t) => l.tags.some(x => x[1] === t);
+const isTest = l => /\.test\.tsx?$/.test(l.name);
+const files = n => `${n} file${n === 1 ? "" : "s"}`;
+
+document.getElementById("totals").textContent = `${files(leaves.length)} · ${lines(leaves)}`;
+const fresh = leaves.filter(l => l.st === NEW && !isTest(l)), tests = leaves.filter(isTest);
+document.getElementById("facts").innerHTML = [
+  ["New source", `${files(fresh.length)}, ${lines(fresh)}.`],
+  ["Tests", `${files(tests.length)}, ${lines(tests)}.`],
+  ["Rename only", `${files(leaves.filter(l => has(l, "rename")).length)} change a label and nothing else.`],
+  ["Flags", `${files(leaves.filter(l => has(l, "copy")).length)} copy code, ${files(leaves.filter(l => has(l, "off-ticket")).length)} off-ticket.`],
+].map(([b, s]) => `<li><b>${b}</b><span>${s}</span></li>`).join("");
+
+const firstTag = l => (l.tags.find(t => t[1] !== "rename") || l.tags[0] || [])[1];
+const FLAG = { copy: "tm-warn", "off-ticket": "tm-crit", deleted: "tm-crit", reuse: "tm-ok", rename: "tm-grey" };
+renderTreemap(document.getElementById("map"), {
+  root: ROOT,
+  unit: ["file", "files"],
+  sizes: [
+    { id: "lines", label: "Lines changed", value: l => l.add + l.del, note: "lines added + removed" },
+    { id: "added", label: "Lines added", value: l => l.add, note: "lines added" },
+    { id: "files", label: "One per file", value: () => 1, note: "one unit per file" },
+  ],
+  colors: [
+    { id: "job", label: "Job" },
+    { id: "status", label: "Status", cls: l => ({ added: "tm-ok", modified: "tm-plain", deleted: "tm-crit" })[l.st],
+      legend: [["tm-ok", "Added"], ["tm-plain", "Modified"], ["tm-crit", "Deleted"]] },
+    { id: "flags", label: "Flags", cls: l => FLAG[firstTag(l)],
+      legend: [["tm-warn", "Copy"], ["tm-ok", "Reuse"], ["tm-crit", "Off-ticket or deleted"], ["tm-grey", "Rename only"], ["tm-plain", "No flag"]] },
+  ],
+  leafLine: l => `+${l.add} −${l.del}`,
+  groupLine: (g, ls) => `${files(ls.length)} · ${lines(ls)}`,
+});
+
+
+for (const t of Object.values(TYPES)) t.changed = false;
+const ROOTS = [{ sep: "The change" }, { t: "RefundDialog" }, { t: "RefundApi" }, { t: "OrderPage" },
+  { sep: "Around it" }, { t: "Extras" }, { sep: "Checks" }, { t: "Checks" }];
+const treeEl = document.getElementById("tree");
+renderTree(treeEl, ROOTS);
+document.querySelector(".tbtn").addEventListener("click", e => {
+  const act = e.target.dataset.act;
+  if (act === "open") openLevel(treeEl);
+  if (act === "all") for (let i = 0; i < 6; i++) openLevel(treeEl);
+  if (act === "reset") renderTree(treeEl, ROOTS);
+});
+
+</script>
