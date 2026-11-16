@@ -9,15 +9,6 @@
             "command": "f=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/forbidden-commands.py\"; [ ! -f \"$f\" ] || python3 \"$f\" --global"
           }
         ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "f=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/push-guard.py\"; [ ! -f \"$f\" ] || python3 \"$f\""
-          }
-        ]
       }
     ],
     "PostToolUse": [
