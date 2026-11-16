@@ -22,9 +22,10 @@ def parse_args():
     p.add_argument("--ignore", default="", help="comma-separated usernames whose notes are not reviews")
     p.add_argument("--state", required=True)
     p.add_argument("--interval", type=int, default=60)
+    p.add_argument("--until", help="HH:MM to stop the watch, in place of the midnight cutoff")
     p.add_argument("--once", action="store_true")
     p.add_argument("--dry-run", action="store_true")
-    p.add_argument("mrs", nargs="+", help="IID@HH:MM")
+    p.add_argument("mrs", nargs="+", help="IID@HH:MM or IID@soft")
     return p.parse_args()
 
 
@@ -47,6 +48,14 @@ class Gitlab:
         out = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         lines = (out.stdout + out.stderr).strip().splitlines()
         return ("ok: " if out.returncode == 0 else "failed: ") + (lines[-1] if lines else "")
+
+    def cancel_automerge(self, iid):
+        path = f"{self.base}/merge_requests/{iid}/cancel_merge_when_pipeline_succeeds"
+        if self.dry_run:
+            return "dry-run: glab api -X POST " + path
+        out = subprocess.run(["glab", "api", "-X", "POST", path], capture_output=True, text=True, timeout=60)
+        lines = out.stderr.strip().splitlines()
+        return "ok" if out.returncode == 0 else "failed: " + (lines[-1] if lines else "glab api failed")
 
 
 class Store:
@@ -138,6 +147,9 @@ def snapshot(gl, store, iid, me, ignore):
         "open_threads": open_threads(gl, iid),
         "branch": mr["source_branch"],
         "_jobs": jobs,
+        "_rules_met": bool(approvals.get("approved")),
+        "_approvers": sorted(a["user"]["username"] for a in approvals.get("approved_by", []) if a["user"]["username"] != me),
+        "_draft": bool(mr.get("draft")),
     }
 
 
@@ -163,10 +175,34 @@ def act(gl, store, iid, snap, deadline, now):
     return lines
 
 
+def act_soft(gl, store, iid, snap):
+    lines = []
+    if snap["state"] != "opened":
+        return lines
+    approvers = snap["_approvers"]
+    as_is = snap["_rules_met"] and approvers and snap["comments"] == 0 and not snap["_draft"]
+    if as_is and not snap["automerge"]:
+        key = f"{iid}.soft-automerge-{snap['sha']}"
+        if not store.seen(key):
+            store.mark(key)
+            store.mark(f"{iid}.soft-set", snap["sha"])
+            result = gl.act("merge", str(iid), "--auto-merge", "--yes")
+            lines.append(f"!{iid} approved as-is by {','.join(approvers)}, auto-merge: {result}")
+    if snap["automerge"] and snap["comments"] > 0 and store.seen(f"{iid}.soft-set"):
+        key = f"{iid}.soft-cancel-{snap['sha']}-{snap['comments']}"
+        if not store.seen(key):
+            store.mark(key)
+            lines.append(f"!{iid} note after auto-merge, cancel auto-merge: {gl.cancel_automerge(iid)}")
+    return lines
+
+
 def status_line(iid, snap, deadline):
     fields = {k: v for k, v in snap.items() if not k.startswith("_")}
+    if deadline is None:
+        fields["approvers"] = ",".join(snap["_approvers"]) or "-"
     body = " ".join(f"{k}={v}" for k, v in fields.items())
-    return f"!{iid} deadline={deadline:%H:%M} {body}"
+    label = "soft" if deadline is None else f"{deadline:%H:%M}"
+    return f"!{iid} deadline={label} {body}"
 
 
 def tick(gl, store, targets, me, ignore, tz):
@@ -175,7 +211,10 @@ def tick(gl, store, targets, me, ignore, tz):
     for iid, deadline in list(targets.items()):
         try:
             snap = snapshot(gl, store, iid, me, ignore)
-            out += act(gl, store, iid, snap, deadline, now)
+            if deadline is None:
+                out += act_soft(gl, store, iid, snap)
+            else:
+                out += act(gl, store, iid, snap, deadline, now)
             out += stuck_lines(gl, store, iid, snap["_jobs"])
         except Exception as e:
             key = f"{iid}.error"
@@ -204,10 +243,10 @@ def main():
     targets = {}
     for spec in args.mrs:
         iid, hhmm = spec.split("@")
-        targets[int(iid)] = deadline_today(hhmm, tz)
+        targets[int(iid)] = None if hhmm == "soft" else deadline_today(hhmm, tz)
     if store.read("cutoff") is None:
         store.mark("cutoff", (deadline_today("00:00", tz) + timedelta(days=1)).isoformat())
-    cutoff = datetime.fromisoformat(store.read("cutoff"))
+    cutoff = deadline_today(args.until, tz) if args.until else datetime.fromisoformat(store.read("cutoff"))
     while True:
         for line in tick(gl, store, targets, me, ignore, tz):
             print(line, flush=True)
@@ -217,7 +256,11 @@ def main():
         if args.once:
             return 0
         if datetime.now(tz) >= cutoff:
-            print("CUTOFF midnight reached, still open: " + " ".join(f"!{i}" for i in targets), flush=True)
+            open_mrs = " ".join(f"!{i}" for i in targets)
+            if args.until:
+                print(f"END {args.until} reached, still open: {open_mrs}", flush=True)
+            else:
+                print("CUTOFF midnight reached, still open: " + open_mrs, flush=True)
             return 0
         time.sleep(args.interval)
 

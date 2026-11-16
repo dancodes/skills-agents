@@ -1,12 +1,13 @@
 ---
 name: daniel-mr-babysit
-description: Watch Daniel's open GitLab MRs until they merge. Approve and set auto-merge at each MR's deadline, fix failed pipelines and conflicts through /daniel subagents, and retry stuck jobs. Use when Daniel invokes /daniel-mr-babysit, or asks to babysit, watch or land MRs by a time.
-argument-hint: <MR>@<HH:MM> [<MR>@<HH:MM> ...]
+description: Watch Daniel's open GitLab MRs until they merge. Approve and set auto-merge at each MR's deadline, fix failed pipelines and conflicts through /daniel subagents, and retry stuck jobs. A soft MR only gets auto-merge when a code owner approves it with no notes. Use when Daniel invokes /daniel-mr-babysit, or asks to babysit, soft babysit, watch or land MRs by a time.
+argument-hint: <MR>@<HH:MM>|<MR>@soft [...] [until HH:MM]
 ---
 
 # /daniel-mr-babysit
 
-Watch a set of MRs in this session until every one merges, or until midnight.
+Watch a set of MRs in this session until every one merges, or until midnight
+(or `--until`).
 
 ## 1. Settle the input
 
@@ -19,6 +20,11 @@ Every MR needs a number (or URL) and a deadline time in the profile's time
 zone. Take what the invocation gives. Ask for each missing MR or time, and for
 a time already past today. Never guess one. The deadline is when the watch
 approves the MR and sets auto-merge.
+
+A soft MR (`<MR>@soft`, "soft babysit") has no deadline. Merge it only if a
+code owner approves it as it is: no note, not even a nit. Never approve a soft
+MR, and never give it a deadline, since the deadline approves. When Daniel names
+an end time ("until 9pm"), pass `--until <HH:MM>`.
 
 ## 2. Start the watch
 
@@ -39,6 +45,13 @@ does the deadline work itself:
   auto-merge. It approves again after a push removes the approval.
 - Before the deadline: if the MR is approved and has no notes from other
   people, set auto-merge at once.
+- Soft MR: never approve. Set auto-merge only when GitLab says every approval
+  rule is met (code owner included), someone other than Daniel approved, and
+  nobody outside `--ignore` and Daniel left a note. A note after the watch set
+  auto-merge cancels it.
+
+`--until <HH:MM>` stops the watch at that time with an `END` line, in place of
+the midnight cutoff. `--interval <seconds>` sets the check period.
 
 When the monitor expires, start it again with the same command. The state
 directory keeps it from repeating lines. Use `--once --dry-run` to see one
@@ -48,7 +61,8 @@ Add a one-time backup with CronCreate for each MR, one minute after its
 deadline. Cron reads the machine's local time:
 `date -d 'TZ="<time zone>" <HH:MM> + 1 minute' '+%M %H %d %m'`. Prompt: run
 `watch.py … --once` for that MR, then confirm it is approved with auto-merge
-on, and fix it if not. Delete an MR's backup once it has both.
+on, and fix it if not. Delete an MR's backup once it has both. A soft MR gets
+no backup cron.
 
 ## 3. Act on each event
 
@@ -62,7 +76,10 @@ on, and fix it if not. Delete an MR's backup once it has both.
 | An auto-merge or approve line that says `failed:` | Find out why from the MR, then fix it or tell Daniel. |
 | `state=merged` | Delete that MR's backup cron. |
 | `ALL DONE` | End, below. |
-| `CUTOFF` | Stop the watch and report each MR that is still open and why. |
+| `CUTOFF` or `END` | Stop the watch and report each MR that is still open and why. |
+
+A soft MR gets no fixes: for `failed_jobs=`, `conflicts=True`, notes or
+`STUCK`, only tell Daniel. Report every soft auto-merge or cancel line.
 
 Only one fix runs per MR. A new failure while a fix runs waits for that fix.
 
