@@ -126,7 +126,9 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    and changed assertions. When the round changed 5 files or fewer, also relay
    every diff hunk, verbatim and complete. Over 5 files, relay the file list
    only. End the relay with one line: `continue` commits the round, `ship`
-   reviews, parks, tickets and pushes. Copy the hunks character for character: never retype, trim, reflow or summarise a line, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them. If the report is cut (a hunk ends mid-file, or there are fewer hunks than modified files), do not reconstruct it: ask impl to resend the missing hunks and relay those.
+   reviews, parks, tickets and pushes. Start that line with the plan position,
+   e.g. `Commit 2 of 3, not the last.` or `Commit 3 of 3, the last.`; with
+   `insta` or no plan, say `No plan.` Copy the hunks character for character: never retype, trim, reflow or summarise a line, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them. If the report is cut (a hunk ends mid-file, or there are fewer hunks than modified files), do not reconstruct it: ask impl to resend the missing hunks and relay those.
 6. If Daniel replies with feedback: send it to the same running `impl` agent via SendMessage. It already has the file context. Spawn a fresh `impl` agent only if the previous one is dead or Daniel asks for a clean take. When it reports, go to step 5.
 7. If Daniel says **continue**: he accepts this round but the run goes on.
    Commit the round and keep the workspace and the `impl` agent alive.
