@@ -33,7 +33,11 @@ thing, and a Light / Dark switch in the header. The Quote Report DTO page in
    size. Read it first and build a Map + List page with `treemap.js` and
    `tree.js`: a DiskTree-style map with Depth, Size and Color switches. The
    example is `examples/change-treemap.html`.
-5. **Check once** at 1280×760 in light mode, then publish. Done when no text
+5. **Places and paths use `<SKILL_DIR>/map.md`.** A moving vehicle, a
+   route, sites with coordinates: read it first and build a Map page with
+   `map.js`. Raster tiles are blocked in Artifacts, so the streets ship as
+   vector data next to the page.
+6. **Check once** at 1280×760 in light mode, then publish. Done when no text
    clips and the page has no sideways scroll.
 
 ## Style
