@@ -85,3 +85,5 @@ Done when its step 6 check passes for every pause.
 Per video: the explained MP4 path, its size and duration. The shots folder and `shots.md`. Per shot: the values the crop shows, and the request that proves it. Then the contradictions, the inferred captions, and the console errors and failed requests from the events log. Write "None" when a list is empty.
 
 Stop the dev server as the Stop section of /daniel-verify says.
+
+Then, if this run made a jj workspace for the proof, check it with `jj diff -r <name>@ --stat`. When the diff is empty, do not ask: run `jj workspace forget <name>`, delete its directory, and end the report with `Workspace <name> forgotten.` Ask Daniel only when the workspace has changes. Never touch a workspace this run did not make.
