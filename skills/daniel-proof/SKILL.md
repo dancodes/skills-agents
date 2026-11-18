@@ -1,7 +1,6 @@
 ---
 name: daniel-proof
-description: Prove each claim of a feature on a local app session with one explained video and sharp cropped screenshots taken during the recording, by chaining /daniel-verify, /daniel-video-record and /daniel-video-annotate.
-disable-model-invocation: true
+description: Prove each claim of a feature on a local app session with one explained video and sharp cropped screenshots taken during the recording, by chaining /daniel-verify, /daniel-video-record and /daniel-video-annotate. Use ONLY when Daniel asks for proof or invokes /daniel-proof, including through an agent he asked to run it. Never start it on your own.
 ---
 
 # /daniel-proof
