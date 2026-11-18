@@ -1,0 +1,79 @@
+<div class="app">
+  <header class="top">
+    <div class="ttl">
+      <h1>{{H1}}</h1>
+      <span class="sub">{{SUB}}</span>
+    </div>
+    <div class="right">
+      <div class="seg" role="radiogroup" aria-label="Theme">
+        <button type="button" role="radio" data-mode="light" aria-checked="true">Light</button>
+        <button type="button" role="radio" data-mode="dark" aria-checked="false">Dark</button>
+      </div>
+      <div class="seg" role="radiogroup" aria-label="Name style" id="chip-picker">
+        <button type="button" role="radio" data-cs="dot" aria-checked="false" tabindex="-1">Dot</button>
+        <button type="button" role="radio" data-cs="dotwash" aria-checked="true">Dot + wash</button>
+        <button type="button" role="radio" data-cs="bar" aria-checked="false" tabindex="-1">Left bar</button>
+        <button type="button" role="radio" data-cs="chip" aria-checked="false" tabindex="-1">Chip</button>
+      </div>
+      <nav class="seg" role="tablist" aria-label="Views">
+        <button type="button" role="tab" data-view="day" aria-selected="true">Day</button>
+        <button type="button" role="tab" data-view="waste" aria-selected="false">Waste</button>
+        <button type="button" role="tab" data-view="tasks" aria-selected="false">Tasks</button>
+        <button type="button" role="tab" data-view="open" aria-selected="false">Open work</button>
+        <button type="button" role="tab" data-view="fixes" aria-selected="false">Fixes</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="view" id="v-day">
+      <ul class="rules" id="kpis"></ul>
+      <div class="card s">
+        <div class="pane-h"><span><b>Timeline</b> · one row for each Claude session</span>
+          <span class="legend">
+            <span><i class="sw work"></i>agent works</span>
+            <span><i class="sw stop"></i>stopped: waits for you or CI</span>
+            <span><i class="sw away"></i>no prompt in any session for 20 min or more</span>
+            <span>▏prompt</span>
+          </span></div>
+        <div class="tl" id="tl"></div>
+        <div class="foot">GitLab: ● merged · ◆ MR opened · ○ approved · ✕ closed · ▏push. Linear: ■ ticket created. Hover a mark for detail.</div>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="pane-h"><span><b>Session time</b> · minutes of work and minutes stopped</span><span id="wsTot"></span></div><div class="bars" id="ws" style="--lw:150px;--nw:92px"></div></div>
+        <div class="card"><div class="pane-h"><span><b>Prompts each 30 min</b> · by task</span><span class="legend" id="taskLegend"></span></div><div class="cols" id="cols"></div><div class="colx" id="colx"></div></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-waste" hidden>
+      <div class="grid3">
+        <div class="card"><div class="pane-h"><span><b>By theme</b> · session minutes</span><span id="thTot"></span></div><div class="bars" id="bTheme" style="--lw:190px;--nw:44px"></div></div>
+        <div class="card"><div class="pane-h"><span><b>By kind</b></span></div><div class="bars" id="bKind" style="--lw:150px;--nw:44px"></div></div>
+        <div class="card"><div class="pane-h"><span><b>By task</b></span></div><div class="bars" id="bTask" style="--lw:110px;--nw:44px"></div></div>
+      </div>
+      <div class="card"><div class="pane-h"><span><b>Findings</b> · <span id="fFilter">all</span> · click a bar to filter, click a row for detail</span><span><button type="button" id="fReset" class="fl">show all</button> <span id="fCount"></span></span></div>
+        <div class="body"><table><thead><tr><th class="l">#</th><th class="l">min</th><th class="l">theme</th><th class="l">session</th><th class="l">start</th><th class="l">what</th></tr></thead><tbody id="fBody"></tbody></table></div>
+        <div class="foot" id="wasteFoot"></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-tasks" hidden>
+      <div class="legend" id="phLegend"></div>
+      <div class="grid2" id="taskCards"></div>
+      <div class="card"><div class="pane-h"><span><b>Short runs</b> · <span id="psCount"></span></span><span id="psState"></span></div>
+        <div class="body"><table><thead><tr><th class="l">session</th><th class="l">start</th><th class="l">end</th><th>prompts</th><th>work min</th><th>stopped min</th><th class="l">result</th></tr></thead><tbody id="psBody"></tbody></table></div></div>
+    </section>
+
+    <section class="view" id="v-open" hidden>
+      <div class="card" id="stackCard"><div class="pane-h"><span><b>MR stacks</b> · <span id="stackSub"></span></span><span id="stackState"></span></div><div class="stacks" id="stacks"></div></div>
+      <div class="card"><div class="pane-h"><span><b id="openTitle">Still open</b></span><span id="openCount"></span></div>
+        <div class="body"><table><thead><tr><th class="l">item</th><th class="l">state</th><th class="l">detail</th></tr></thead><tbody id="openBody"></tbody></table></div></div>
+    </section>
+
+    <section class="view" id="v-fixes" hidden>
+      <div class="card"><div class="pane-h"><span><b>Priority tasks</b> · ranked by minutes saved for the effort · click a row for the change</span><span id="fxTot"></span></div>
+        <div class="body"><table><thead><tr><th class="l">#</th><th class="l">saves, session min</th><th class="l">task</th><th class="l">type</th><th class="l">effort</th></tr></thead><tbody id="fxBody"></tbody></table></div>
+      </div>
+    </section>
+  </main>
+</div>
