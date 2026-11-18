@@ -30,7 +30,8 @@ Run either with no arguments for its usage.
   set the Bash tool `timeout` to 600000.
 - **Steps live in a file.** A hook blocks any Bash command whose text has
   `sleep <n>`, also as an xdotool argument or in a heredoc. Write each steps
-  file with the Write tool. Shell `sleep`, `wait`, `timeout` and polling loops
+  file with the Write tool, and change it with the Edit tool, never with
+  `sed`. Shell `sleep`, `wait`, `timeout` and polling loops
   are blocked as well: `$tab wait`, `$tab waitjs`, `$tab pause` and xdotool
   `sleep` replace them.
 - **Waits end early.** `$tab goto`, `wait` and `waitjs` give up after 15 s,

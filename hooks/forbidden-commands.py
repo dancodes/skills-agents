@@ -41,7 +41,8 @@ GLOBAL_RULES = [
      r"|\bsleep\(\s*\.?\d",
      "sleep, timeout and polling loops are forbidden. Run the command once and "
      "read its output: in the foreground with timeout: 600000 for a long run, "
-     "or with run_in_background, which tells you when it exits."),
+     "or with run_in_background, which tells you when it exits. To write or "
+     "change a file whose text holds sleep, use the Write or Edit tool."),
 ]
 
 DANIEL_RULES = [
