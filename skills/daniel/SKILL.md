@@ -218,6 +218,10 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    with `jj git push -b <bookmark>` and relay the merge request link from the
    output.
 
+   If Daniel said `ship, then mr`, or his /daniel request said `then mr`,
+   invoke the `daniel-mr` skill with the
+   ticket ID, or with the moved bookmark after `--onto`, and relay its report.
+
    Then stop. Do not spawn the `jj` agent and do not squash. The park script
    forgets the workspace, deletes its directory and stops its dev server.
    Never hand Daniel a stop command.
