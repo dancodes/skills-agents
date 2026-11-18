@@ -67,12 +67,10 @@ Done when `$video setup` prints `Ready` and you know the port.
    background, so it does not disturb a recording.
 2. If the tab lands on a login page, log in as `verify.md` says.
 3. Make every clone the run needs now, in one call: one for the probe, and
-   one more for the take when the flow changes data. `$tab popup <id> <count>
-   <target> ...` brings the tab to the front, clicks the clone controls that
-   `video.md` names and prints each clone's URL as soon as the app opens it,
-   without a new tab. Without a
-   `video.md`, follow the `verify.md` steps with `$tab goto`, `$tab wait` and
-   `$tab click`.
+   one more for the take when the flow changes data. `video.md` says how.
+   Without a `video.md`, run `$tab popup <id> <count> <target> ...` on the
+   clone controls that `verify.md` names. It brings the tab to the front,
+   clicks them and prints each clone's URL, without a new tab.
 4. `$tab goto` your tab to the probe clone. Open one more tab for each other
    clone, or keep its URL for later. Close the source session's tab with
    `$tab close`.
@@ -195,8 +193,8 @@ writes `<dir>/<slug>.events.jsonl` and prints the timeline.
    is the video time, within about 1 s.
 
 If a click missed or a page was still loading, fix the coordinates or the
-pauses and go back to step 5 with a new clone. Make it with `$tab popup`
-while you fix the steps file.
+pauses and go back to step 5 with a new clone. Make it as step 3 of
+section 2 says while you fix the steps file.
 
 Report only what the frames show. If the behavior happened in the log but
 not on screen, or did not happen at all, say that in the first line of the
