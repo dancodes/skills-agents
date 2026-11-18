@@ -178,10 +178,19 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    each finding as fixed or dismissed, with why, then the usual impl report
    for the files you changed.
 
-   One `ship` runs to the end. Stop before parking only if a finding is open
-   (neither fixed nor dismissed) or a test fails: relay the findings and the
-   reviewer's report as in step 5, and wait. Feedback then goes to the
-   reviewer, and the next `ship` parks without a second review. Otherwise
+   With auto on, also tell the reviewer to mark each open finding (neither
+   fixed nor dismissed) `high risk` or `low risk`, with its failure scenario.
+   Low risk means the failure needs an unusual input or state, and loses or
+   corrupts no data.
+
+   One `ship` runs to the end. Stop before parking only if a test fails, or a
+   finding is open and auto is off or the finding is high risk: relay the
+   findings and the reviewer's report as in step 5, and wait. Feedback then
+   goes to the reviewer, and the next `ship` parks without a second review.
+   With auto on, a low-risk open finding does not stop the run: it is a known
+   limit. List each known limit with its failure scenario under
+   `Known limits:` in the relay, and when `daniel-mr` runs, tell it to add the
+   same list to the MR description. Otherwise
    park, ticket and push at once, even when the reviewer changed files. Keep
    the reviewer's findings and hunks before parking, because the park deletes
    the workspace, and relay them after the park output, as in step 5. This
