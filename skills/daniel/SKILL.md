@@ -100,8 +100,10 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/new-workspace.sh" <feature-name> <base>
    ```
    It runs `jj workspace add`, runs the repo profile's workspace setup (links
-   to dependencies and generated files), and prints the workspace path. The
-   working copy starts as `jj new <base>`. Remember the base: step 8 needs it.
+   to dependencies and generated files), and prints the workspace path. It
+   fetches first, and a base of `main` becomes `main@origin`. The working copy
+   starts as `jj new <base>`. Remember the base: step 8 needs it, as
+   `main@origin` when it was `main`.
 
    The base is `main` unless the request names a bookmark, a change ID or a
    commit to work on ("based on alice/abc-142-…", "fix issues at mpqnynpn").

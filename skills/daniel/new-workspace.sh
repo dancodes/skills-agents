@@ -16,10 +16,13 @@ source=$(jj workspace root 2>/dev/null || jj root)
 workspace=$source/../daniel-workspaces/$1
 
 mkdir -p "$(dirname -- "$workspace")"
+jj -R "$source" git fetch
+base=${2:-}
+[[ $base == main ]] && base=main@origin
 # With a base revision the working copy starts as `jj new <rev>`, so the work
 # builds on that commit instead of on the current branch tip.
-if [[ -n ${2:-} ]]; then
-  jj workspace add --revision "$2" "$workspace"
+if [[ -n $base ]]; then
+  jj workspace add --revision "$base" "$workspace"
 else
   jj workspace add "$workspace"
 fi

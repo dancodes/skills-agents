@@ -32,13 +32,14 @@ cycle, even if that file names one.
    workspace rewrites its commits; if a command fails with "The working copy is
    stale", rerun it with `--ignore-working-copy`. Never run
    `jj workspace update-stale`: it rewrites files other agents are using.
-1. **Describe first.** For each change id, inspect its branch commits with a
-   template that never prints a blank line, so an empty result is unmistakable:
+1. **Describe first.** Run `jj -R "$REPO" git fetch`. For each change id,
+   inspect its branch commits with a template that never prints a blank line,
+   so an empty result is unmistakable:
    ```bash
-   jj -R "$REPO" log -r 'main..<id>' --no-graph \
+   jj -R "$REPO" log -r 'main@origin..<id>' --no-graph \
      -T 'change_id.short() ++ " | " ++ if(description, description.first_line(), "(no description)") ++ "\n"'
    ```
-   - No lines at all → the id is not a descendant of `main`. Run
+   - No lines at all → the id has no commit outside `main@origin`. Run
      `jj -R "$REPO" log -r '<id>'` to see what it is and stop with that
      finding; do not guess a title.
    - Any commit shows `(no description)` → read its diff
@@ -66,9 +67,20 @@ cycle, even if that file names one.
    nothing else). Take `gitBranchName` from each response.
 7. Prefix each commit's description with the ticket id if it lacks one:
    `jj -R "$REPO" describe -r <commit> -m "[<KEY>-NNNN] <existing first line>"`.
-8. Bookmark and push, all in one go:
+8. Bookmark, rebase onto `main@origin` if needed, and push:
    ```bash
    jj -R "$REPO" bookmark create <gitBranchName> -r <id>
+   ```
+   If `jj -R "$REPO" log -r 'main@origin ~ ::<id>' --no-graph -T 'change_id'`
+   prints anything, `main@origin` is not an ancestor of the tip:
+   - `jj -R "$REPO" rebase -b <id> -d main@origin`. If the rebase leaves a
+     conflict, stop before the push and report the conflicted commits.
+   - Typecheck the rebased tip in a throwaway workspace:
+     `"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/new-workspace.sh" ticket-check-<id> <id>`,
+     run the typecheck command from the repo profile's `notes.md` there, then
+     `"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/cleanup-workspace.sh" ticket-check-<id>`.
+     If the typecheck fails, stop before the push and report the errors.
+   ```bash
    jj -R "$REPO" git push --bookmark <gitBranchName> [--bookmark ...]
    ```
    `--bookmark` already pushes new bookmarks; `--allow-new` does not exist in
@@ -80,7 +92,8 @@ cycle, even if that file names one.
 ## Report
 
 One table: change id, ticket id, bookmark, merge request URL from the push
-output, and whether a handoff bookmark was deleted.
+output, whether a handoff bookmark was deleted, and whether it was rebased
+onto `main@origin`.
 
 Then run `"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel-verify/verify.sh" list`.
 Run `verify.sh stop <port>` yourself for every server whose workspace this
