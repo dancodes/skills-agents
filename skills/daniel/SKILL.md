@@ -35,9 +35,9 @@ stays.
 
 `auto` means the rounds run without waiting for Daniel. After each round's
 relay, commit it with `commit-workspace.sh` at once, send impl the next commit
-of the plan, and start ship after the last commit. Ship parks after the
-review without waiting, even when the reviewer changed files. Stop and wait
-for Daniel only when a test fails or impl drops an item of the request. The
+of the plan, and start ship after the last commit. Ship then follows its own
+stop rule in step 8. During the rounds, stop and wait for Daniel only when a
+test fails or impl drops an item of the request. The
 explore, grilling, impl's prompt and the plan still wait for his go.
 
 Start your first message with the spec for this run, every setting filled in,
@@ -176,10 +176,14 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    each finding as fixed or dismissed, with why, then the usual impl report
    for the files you changed.
 
-   Relay the findings. If the reviewer changed no file, park. If it changed
-   files, relay its report as in step 5 and wait. With auto on, do not wait:
-   park, unless the reviewer reports a failing test. Feedback goes to the
-   reviewer. `ship` then parks without a second review.
+   One `ship` runs to the end. Stop before parking only if a finding is open
+   (neither fixed nor dismissed) or a test fails: relay the findings and the
+   reviewer's report as in step 5, and wait. Feedback then goes to the
+   reviewer, and the next `ship` parks without a second review. Otherwise
+   park, ticket and push at once, even when the reviewer changed files. Keep
+   the reviewer's findings and hunks before parking, because the park deletes
+   the workspace, and relay them after the park output, as in step 5. This
+   holds for `--onto` and `--onto --squash` too.
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/park-workspace.sh" <workspace-path> "<one-line message>"
    ```
