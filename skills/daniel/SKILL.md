@@ -37,23 +37,27 @@ stays.
 relay, commit it with `commit-workspace.sh` at once, send impl the next commit
 of the plan, and start ship after the last commit. Ship then follows its own
 stop rule in step 8. During the rounds, stop and wait for Daniel only when a
-test fails or impl drops an item of the request. The
-explore, grilling, impl's prompt and the plan still wait for his go.
+test fails or impl drops an item of the request. Grilling still waits for
+his answers. After grilling, show impl's prompt and send it at once, with no
+wait. Accept the plan at once too, unless it drops an item of the request or
+names an open question: then relay it and wait for go.
 
 Start your first message with the spec for this run, every setting filled in,
 then go on without waiting:
 
-> Flow: impl plans the commits, you say go, it builds one commit per round.
-> Auto commits each round and starts the next, then ships after the last.
-> It stops only on a failed test or a dropped request item. `ship` runs one
+> Flow: after grilling, impl plans the commits and builds one commit per round.
+> Auto sends impl's prompt, accepts the plan, commits each round and starts
+> the next, then ships after the last. It stops only on a failed test, a
+> dropped request item or an open question in the plan. `ship` runs one
 > Opus review of the whole change, then parks, tickets and pushes.
 > This run: based on `main`, explore on (3 agents), grilling on, browser
 > verify off, plan first, auto on.
 > Switches: `based on <revision>`, `with explore <N>`, `without explore`,
 > `without grilling`, `with verify [<template>]`, `insta`, `no auto`.
 
-With `no auto`, the second Flow line reads "`continue` commits the round" and
-the run line says "auto off".
+With `no auto`, the Flow lines read "after grilling, impl plans the commits,
+you say go to its prompt and its plan, and it builds one commit per round.
+`continue` commits the round." and the run line says "auto off".
 
 With `insta`, the Flow line reads "impl builds the whole change at once" and
 the run line says "insta" instead of "plan first".
@@ -133,10 +137,11 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
      brief is only the question plus "read only, change no file".
      Move on only when Daniel confirms you share an understanding.
 4. Write impl's prompt, then show it to Daniel whole and verbatim, and wait
-   for go. It must state the goal, what to test (the cases and the test
+   for go. With auto on, do not wait: spawn impl right after you show it.
+   It must state the goal, what to test (the cases and the test
    commands), and what to verify (how impl proves the change works). If
    Daniel's reply changes it, show the updated prompt and wait again. Then spawn
-   `impl` with exactly that prompt. The prompt hands it the workspace directory and the full request, every explore report verbatim, and every decision settled while grilling. Without `insta`, its first task is a plan, read only: a numbered list of commits, each one concern with its own tests, backend and frontend in separate commits, with the files and tests for each; the smallest option that would also work and why not; a fix at the shared definition, not only the call site the ticket names; every item of the request, naming any it drops. Relay the plan and wait for go. Then impl builds commit 1 only. With `insta`, impl builds the whole change at once. With browser verify on, also hand it the port and the target URL, and tell it to check its change with the `daniel-verify` skill. Tell impl to end every round's report with the test commands it ran and their result, and any request item it dropped. When it reports, go to step 5.
+   `impl` with exactly that prompt. The prompt hands it the workspace directory and the full request, every explore report verbatim, and every decision settled while grilling. Without `insta`, its first task is a plan, read only: a numbered list of commits, each one concern with its own tests, backend and frontend in separate commits, with the files and tests for each; the smallest option that would also work and why not; a fix at the shared definition, not only the call site the ticket names; every item of the request, naming any it drops; and every open question it has. Relay the plan and wait for go. With auto on, relay it and go on at once, unless it drops an item of the request or names an open question. Then impl builds commit 1 only. With `insta`, impl builds the whole change at once. With browser verify on, also hand it the port and the target URL, and tell it to check its change with the `daniel-verify` skill. Tell impl to end every round's report with the test commands it ran and their result, and any request item it dropped. When it reports, go to step 5.
 5. Relay impl's report to Daniel: result, modified files, removed safeguards
    and changed assertions. When the round changed 5 files or fewer, also relay
    every diff hunk, verbatim and complete. Over 5 files, relay the file list
