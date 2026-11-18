@@ -27,21 +27,33 @@ Input: `/daniel <description of feature, bug, or change>` or `/daniel <path/to/m
 | Grilling | on | `without grilling` |
 | Browser verify | off | `with verify`, `with verify <template>` |
 | Plan first | on | `insta` |
+| Auto | on | `no auto` |
 
 `insta` means a fast one-shot: impl skips the plan and builds the whole change
 at once, and you relay causes without the confirming agent. Everything else
 stays.
 
+`auto` means the rounds run without waiting for Daniel. After each round's
+relay, commit it with `commit-workspace.sh` at once, send impl the next commit
+of the plan, and start ship after the last commit. Ship parks after the
+review without waiting, even when the reviewer changed files. Stop and wait
+for Daniel only when a test fails or impl drops an item of the request. The
+explore, grilling, impl's prompt and the plan still wait for his go.
+
 Start your first message with the spec for this run, every setting filled in,
 then go on without waiting:
 
 > Flow: impl plans the commits, you say go, it builds one commit per round.
-> `continue` commits the round. `ship` runs one Opus review of the whole
-> change, then parks, tickets and pushes.
+> Auto commits each round and starts the next, then ships after the last.
+> It stops only on a failed test or a dropped request item. `ship` runs one
+> Opus review of the whole change, then parks, tickets and pushes.
 > This run: based on `main`, explore on (3 agents), grilling on, browser
-> verify off, plan first.
+> verify off, plan first, auto on.
 > Switches: `based on <revision>`, `with explore <N>`, `without explore`,
-> `without grilling`, `with verify [<template>]`, `insta`.
+> `without grilling`, `with verify [<template>]`, `insta`, `no auto`.
+
+With `no auto`, the second Flow line reads "`continue` commits the round" and
+the run line says "auto off".
 
 With `insta`, the Flow line reads "impl builds the whole change at once" and
 the run line says "insta" instead of "plan first".
@@ -52,7 +64,8 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
 
 ## Approval and limits
 
-- Impl changes code only after Daniel says go, continue or ship. A
+- Impl changes code only after Daniel says go, continue or ship, or auto
+  moves the run on. A
   reply that adds or changes a requirement is not a go: restate the changed
   plan as a numbered list and wait.
 - "Cause only", "don't fix", "don't act yet" and any question: pass the limit
@@ -121,16 +134,20 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    for go. It must state the goal, what to test (the cases and the test
    commands), and what to verify (how impl proves the change works). If
    Daniel's reply changes it, show the updated prompt and wait again. Then spawn
-   `impl` with exactly that prompt. The prompt hands it the workspace directory and the full request, every explore report verbatim, and every decision settled while grilling. Without `insta`, its first task is a plan, read only: a numbered list of commits, each one concern with its own tests, backend and frontend in separate commits, with the files and tests for each; the smallest option that would also work and why not; a fix at the shared definition, not only the call site the ticket names; every item of the request, naming any it drops. Relay the plan and wait for go. Then impl builds commit 1 only. With `insta`, impl builds the whole change at once. With browser verify on, also hand it the port and the target URL, and tell it to check its change with the `daniel-verify` skill. When it reports, go to step 5.
+   `impl` with exactly that prompt. The prompt hands it the workspace directory and the full request, every explore report verbatim, and every decision settled while grilling. Without `insta`, its first task is a plan, read only: a numbered list of commits, each one concern with its own tests, backend and frontend in separate commits, with the files and tests for each; the smallest option that would also work and why not; a fix at the shared definition, not only the call site the ticket names; every item of the request, naming any it drops. Relay the plan and wait for go. Then impl builds commit 1 only. With `insta`, impl builds the whole change at once. With browser verify on, also hand it the port and the target URL, and tell it to check its change with the `daniel-verify` skill. Tell impl to end every round's report with the test commands it ran and their result, and any request item it dropped. When it reports, go to step 5.
 5. Relay impl's report to Daniel: result, modified files, removed safeguards
    and changed assertions. When the round changed 5 files or fewer, also relay
    every diff hunk, verbatim and complete. Over 5 files, relay the file list
    only. End the relay with one line: `continue` commits the round, `ship`
    reviews, parks, tickets and pushes. Start that line with the plan position,
    e.g. `Commit 2 of 3, not the last.` or `Commit 3 of 3, the last.`; with
-   `insta` or no plan, say `No plan.` Copy the hunks character for character: never retype, trim, reflow or summarise a line, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them. If the report is cut (a hunk ends mid-file, or there are fewer hunks than modified files), do not reconstruct it: ask impl to resend the missing hunks and relay those.
+   `insta` or no plan, say `No plan.` With auto on, replace that line with
+   the plan position and what auto does next (`Commit 2 of 3. Auto commits
+   and sends commit 3.`), then go on without waiting, unless a test failed or
+   impl dropped a request item: then say which one, end with the usual
+   `continue`/`ship` line and wait. Copy the hunks character for character: never retype, trim, reflow or summarise a line, and keep the ```diff fences and the leading space/`-`/`+` on every line so the terminal colours them. If the report is cut (a hunk ends mid-file, or there are fewer hunks than modified files), do not reconstruct it: ask impl to resend the missing hunks and relay those.
 6. If Daniel replies with feedback: send it to the same running `impl` agent via SendMessage. It already has the file context. Spawn a fresh `impl` agent only if the previous one is dead or Daniel asks for a clean take. When it reports, go to step 5.
-7. If Daniel says **continue**: he accepts this round but the run goes on.
+7. If Daniel says **continue**, or auto moves on after a round: he accepts this round but the run goes on.
    Commit the round and keep the workspace and the `impl` agent alive.
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/commit-workspace.sh" <workspace-path> "<one-line message>"
@@ -142,9 +159,12 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    nothing is forgotten: the park is ship's job. Relay its output
    verbatim, then take Daniel's next request to the same running `impl` agent.
    Rounds repeat as often as he wants. With a multi-commit plan, each commit
-   is one round: after `continue`, send impl the next commit. Impl cannot run
+   is one round: after `continue`, send impl the next commit. With auto on,
+   after the last commit of the plan (or the only round with `insta`), go to
+   step 8 at once. Impl cannot run
    jj split, squash or new, so never ask it to.
-8. If Daniel says **ship**: review once, then finish the work.
+8. If Daniel says **ship**, or auto reaches it: review once, then finish
+   the work.
 
    Spawn a fresh `impl` agent with `model: opus` in the same workspace. Hand
    it the request, Daniel's rulings, and this brief: review the whole run's
@@ -157,7 +177,8 @@ The orchestrator must not explore files, attempt to do work itself, or "save tok
    for the files you changed.
 
    Relay the findings. If the reviewer changed no file, park. If it changed
-   files, relay its report as in step 5 and wait. Feedback goes to the
+   files, relay its report as in step 5 and wait. With auto on, do not wait:
+   park, unless the reviewer reports a failing test. Feedback goes to the
    reviewer. `ship` then parks without a second review.
    ```
    "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/daniel/park-workspace.sh" <workspace-path> "<one-line message>"
