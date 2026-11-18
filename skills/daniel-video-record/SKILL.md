@@ -67,8 +67,9 @@ Done when `$video setup` prints `Ready` and you know the port.
 2. If the tab lands on a login page, log in as `verify.md` says.
 3. Make every clone the run needs now, in one call: one for the probe, and
    one more for the take when the flow changes data. `$tab popup <id> <count>
-   <target> ...` clicks the clone controls that `video.md` names and prints
-   each clone's URL as soon as the app opens it, without a new tab. Without a
+   <target> ...` brings the tab to the front, clicks the clone controls that
+   `video.md` names and prints each clone's URL as soon as the app opens it,
+   without a new tab. Without a
    `video.md`, follow the `verify.md` steps with `$tab goto`, `$tab wait` and
    `$tab click`.
 4. `$tab goto` your tab to the probe clone. Open one more tab for each other

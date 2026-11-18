@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Drive one Chrome tab by its DevTools target id, so agents that share a browser never touch each other's tab.
 
+import { execFileSync } from "node:child_process";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const port = process.env.CDP_PORT ?? 9222;
 const http = `http://127.0.0.1:${port}`;
@@ -16,9 +18,9 @@ const usage = `Usage:
   tab.mjs wait <id> <target> [seconds]          wait for target (default 15 s), print the time waited
   tab.mjs waitjs <id> <expression> [seconds]    wait until the JS expression is truthy (default 15 s), print it
   tab.mjs pause <seconds>                       do nothing for that long
-  tab.mjs popup <id> <count> <target> ...       click the targets in order, count times, each once nothing
-                                                covers it; print each URL the page opens in a new tab,
-                                                without opening it
+  tab.mjs popup <id> <count> <target> ...       bring the tab to the front with video.sh front, click the
+                                                targets in order, count times, each once nothing covers it;
+                                                print each URL the page opens in a new tab, without opening it
   tab.mjs point <id> <target> [target ...]      screen x,y of each target's center, for xdotool
   tab.mjs click <id> <target>                   scroll target into view and click it (no real mouse)
   tab.mjs eval <id> <expression | @file>        evaluate JS, print the value
@@ -201,6 +203,7 @@ const commands = {
 
   async popup(id, count, ...targets) {
     if (!targets.length) fail(usage);
+    execFileSync(fileURLToPath(new URL("video.sh", import.meta.url)), ["front", id], { stdio: "inherit" });
     const page = await tab(id);
     await evaluate(page, "window.__opened = []; window.open = (url) => { window.__opened.push(String(url)); return null; }; 0");
     for (let i = 1; i <= Number(count); i++) {
