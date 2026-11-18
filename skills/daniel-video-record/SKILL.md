@@ -37,6 +37,10 @@ Run either with no arguments for its usage.
   and at once when the tab is on a login page. Pass a longer limit only for a
   load that `video.md` lists as slower. Never wait for text that you know will
   not show, to pass time: use `$tab pause`.
+- **No pipes on long calls.** Never pipe `$tab`, `$video` or a setup script
+  into `tail`, `head` or `grep`. A call past 180 s moves to the background,
+  and the pipe keeps its output empty until the end. Write to a log with
+  `> file 2>&1`, then read the file.
 - **A new clone for each attempt that changes data.** An edit stays on the
   server, so a second take on the same clone starts from the wrong state.
   Change data only in a clone, never in the source session.
