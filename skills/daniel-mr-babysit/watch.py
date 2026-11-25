@@ -49,13 +49,19 @@ class Gitlab:
         lines = (out.stdout + out.stderr).strip().splitlines()
         return ("ok: " if out.returncode == 0 else "failed: ") + (lines[-1] if lines else "")
 
-    def cancel_automerge(self, iid):
-        path = f"{self.base}/merge_requests/{iid}/cancel_merge_when_pipeline_succeeds"
+    def post(self, path):
+        path = self.base + path
         if self.dry_run:
             return "dry-run: glab api -X POST " + path
         out = subprocess.run(["glab", "api", "-X", "POST", path], capture_output=True, text=True, timeout=60)
         lines = out.stderr.strip().splitlines()
         return "ok" if out.returncode == 0 else "failed: " + (lines[-1] if lines else "glab api failed")
+
+    def cancel_automerge(self, iid):
+        return self.post(f"/merge_requests/{iid}/cancel_merge_when_pipeline_succeeds")
+
+    def start_pipeline(self, iid):
+        return self.post(f"/merge_requests/{iid}/pipelines")
 
 
 class Store:
@@ -147,10 +153,21 @@ def snapshot(gl, store, iid, me, ignore):
         "open_threads": open_threads(gl, iid),
         "branch": mr["source_branch"],
         "_jobs": jobs,
+        "_pipeline_on_head": bool(hp.get("id")) and hp.get("sha") == mr["sha"],
         "_rules_met": bool(approvals.get("approved")),
         "_approvers": sorted(a["user"]["username"] for a in approvals.get("approved_by", []) if a["user"]["username"] != me),
         "_draft": bool(mr.get("draft")),
     }
+
+
+def pipeline_gate(gl, store, iid, snap):
+    if snap["_pipeline_on_head"]:
+        return True, []
+    key = f"{iid}.start-pipeline-{snap['sha']}"
+    if store.seen(key):
+        return False, []
+    store.mark(key)
+    return False, [f"!{iid} no pipeline on {snap['sha']}, auto-merge waits, start pipeline: {gl.start_pipeline(iid)}"]
 
 
 def act(gl, store, iid, snap, deadline, now):
@@ -167,6 +184,10 @@ def act(gl, store, iid, snap, deadline, now):
         approved = True
     early = approved and snap["comments"] == 0
     if (past_deadline or early) and approved and not snap["automerge"]:
+        ready, gate_lines = pipeline_gate(gl, store, iid, snap)
+        lines += gate_lines
+        if not ready:
+            return lines
         key = f"{iid}.automerge-{snap['sha']}-{snap['merge_status']}"
         if not store.seen(key):
             store.mark(key)
@@ -182,6 +203,9 @@ def act_soft(gl, store, iid, snap):
     approvers = snap["_approvers"]
     as_is = snap["_rules_met"] and approvers and snap["comments"] == 0 and not snap["_draft"]
     if as_is and not snap["automerge"]:
+        ready, gate_lines = pipeline_gate(gl, store, iid, snap)
+        lines += gate_lines
+    if as_is and not snap["automerge"] and ready:
         key = f"{iid}.soft-automerge-{snap['sha']}"
         if not store.seen(key):
             store.mark(key)

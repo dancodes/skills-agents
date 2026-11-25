@@ -49,6 +49,10 @@ does the deadline work itself:
   rule is met (code owner included), someone other than Daniel approved, and
   nobody outside `--ignore` and Daniel left a note. A note after the watch set
   auto-merge cancels it.
+- Every MR: set auto-merge only when a pipeline ran on the MR's last commit.
+  With no pipeline, GitLab merges at once and skips the merge train. So the
+  watch starts one pipeline for that commit, prints a `no pipeline on` line and
+  sets auto-merge on a later check, when the pipeline shows.
 
 `--until <HH:MM>` stops the watch at that time with an `END` line, in place of
 the midnight cutoff. `--interval <seconds>` sets the check period.
@@ -73,7 +77,7 @@ no backup cron.
 | `open_threads=` above 0, or `comments=` goes up | Read the new notes. Ask Daniel what to do, with options and a recommendation. Never reply to or resolve a thread yourself. His chosen fix goes through the pipeline fix flow. |
 | `STUCK job` | Cancel and retry it: `glab api -X POST projects/<URL-encoded project>/jobs/<id>/cancel`, then `…/retry`. A second STUCK for the same job name on this MR: ask Daniel. |
 | `ERROR` | Read it. Retry once by hand. If it repeats, tell Daniel. |
-| An auto-merge or approve line that says `failed:` | Find out why from the MR, then fix it or tell Daniel. |
+| An auto-merge, approve or start pipeline line that says `failed:` | Find out why from the MR, then fix it or tell Daniel. |
 | `state=merged` | Delete that MR's backup cron. |
 | `ALL DONE` | End, below. |
 | `CUTOFF` or `END` | Stop the watch and report each MR that is still open and why. |
