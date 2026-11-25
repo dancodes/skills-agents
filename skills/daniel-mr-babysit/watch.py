@@ -153,7 +153,7 @@ def snapshot(gl, store, iid, me, ignore):
         "open_threads": open_threads(gl, iid),
         "branch": mr["source_branch"],
         "_jobs": jobs,
-        "_pipeline_on_head": bool(hp.get("id")) and hp.get("sha") == mr["sha"],
+        "_has_pipeline": bool(hp.get("id")),
         "_rules_met": bool(approvals.get("approved")),
         "_approvers": sorted(a["user"]["username"] for a in approvals.get("approved_by", []) if a["user"]["username"] != me),
         "_draft": bool(mr.get("draft")),
@@ -161,7 +161,7 @@ def snapshot(gl, store, iid, me, ignore):
 
 
 def pipeline_gate(gl, store, iid, snap):
-    if snap["_pipeline_on_head"]:
+    if snap["_has_pipeline"]:
         return True, []
     key = f"{iid}.start-pipeline-{snap['sha']}"
     if store.seen(key):

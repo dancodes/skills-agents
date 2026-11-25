@@ -49,10 +49,12 @@ does the deadline work itself:
   rule is met (code owner included), someone other than Daniel approved, and
   nobody outside `--ignore` and Daniel left a note. A note after the watch set
   auto-merge cancels it.
-- Every MR: set auto-merge only when a pipeline ran on the MR's last commit.
-  With no pipeline, GitLab merges at once and skips the merge train. So the
-  watch starts one pipeline for that commit, prints a `no pipeline on` line and
-  sets auto-merge on a later check, when the pipeline shows.
+- Every MR: set auto-merge only when the MR has a head pipeline. With none,
+  GitLab merges at once and skips the merge train. GitLab drops the head
+  pipeline when the target branch changes. Its commit is the trial merge with
+  the target, not the MR's last commit, so the watch does not compare commits.
+  With no head pipeline, the watch starts one, prints a `no pipeline on` line
+  and sets auto-merge on a later check, when the pipeline shows.
 
 `--until <HH:MM>` stops the watch at that time with an `END` line, in place of
 the midnight cutoff. `--interval <seconds>` sets the check period.
