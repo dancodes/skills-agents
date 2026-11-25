@@ -1,12 +1,13 @@
 ---
 name: ticket
-description: Create one Linear ticket per jj change (branch tip), title only, no cycle, assigned to the user, then push each change as a bookmark named after the ticket's auto-generated git branch. Use ONLY when the user invokes /ticket, with jj change ids or bare for the change this conversation created.
+description: Create one Linear ticket per jj change (branch tip), with a plain-English summary on top and the technical details folded away, no cycle, assigned to the user, then push each change as a bookmark named after the ticket's auto-generated git branch. Use ONLY when the user invokes /ticket, with jj change ids or bare for the change this conversation created.
 ---
 
 # ticket
 
 Turn jj changes into Linear tickets plus pushed branches. Input: one or more jj
-change ids (e.g. `/ticket pnqsvuml utlnmzkl`). No description on the ticket.
+change ids (e.g. `/ticket pnqsvuml utlnmzkl`). Each ticket gets a description
+in the shape that `## Description` gives.
 
 Invoked bare (`/ticket`), the target is the change this conversation just
 created, normally the one `/daniel` parked on a `handoff/` bookmark. If this
@@ -18,6 +19,52 @@ Read `${SKILLS_AGENTS_PRIVATE:-$HOME/.config/skills-agents}/ticket.md`. It
 gives the Linear team id and key, the assignee and the branch glob. If the file is
 missing, ask Daniel for the team once and use assignee `"me"`. Never set a
 cycle, even if that file names one.
+
+## Description
+
+Write it from the change's diff and from this conversation. Two parts, in
+this order:
+
+1. **Summary.** 2 to 4 short sentences, under 60 words, in plain English.
+   Say what a user sees go wrong or what now works, and why it matters.
+   Write for someone who uses the app but does not read code. No file names,
+   field names, function names, rule codes, commit ids or numbers that need
+   context.
+2. **`+++ Technical details`**, closed by a lone `+++` line. Everything else
+   goes here: the change list, worked examples with numbers, side effects,
+   out of scope, repro steps, commits, files, tests and QA clone ids.
+
+Nothing technical goes above the `+++` line. Use `##` headings inside the
+folded part only when it has more than one topic.
+
+Example:
+
+```
+Cost Approach totals could be $1 off from Spark. We rounded each cost line
+and then added them. Spark adds first and rounds once. Now both show the same
+cost-new on the screen, the PDF and the export.
+
++++ Technical details
+
+## Changes
+
+- Each rate goes to whole cents. The cents of all lines of a structure are
+  added, and the sum is rounded once, half away from zero.
+- `depreciated_cost_dwellings` and `estimated_total_cost` use the
+  once-rounded cost-new.
+
+## Out of scope
+
+- Several buildings, because Spark has no rule for them.
+
+## Agent notes
+
+- Commits: `ukvxukot` adds `costRounding.ts`; `sopzoyzu` adds
+  `deriveStructureCost`.
+- Tests: costApproach unit tests pass. Typecheck and lint pass.
+
++++
+```
 
 ## Flow
 
@@ -63,8 +110,9 @@ cycle, even if that file names one.
 4. Do not fetch or set a cycle.
 5. Title: one commit → that commit's first line. Several commits → write a
    plain one-line title that covers all of them.
-6. Create one ticket per change with `save_issue` (team, assignee, title;
-   nothing else). Take `gitBranchName` from each response.
+6. Create one ticket per change with `save_issue` (team, assignee, title,
+   description; nothing else). Pass real newlines in the description, not
+   `\n`. Take `gitBranchName` from each response.
 7. Prefix each commit's description with the ticket id if it lacks one:
    `jj -R "$REPO" describe -r <commit> -m "[<KEY>-NNNN] <existing first line>"`.
 8. Bookmark, rebase onto `main@origin` if needed, and push:
