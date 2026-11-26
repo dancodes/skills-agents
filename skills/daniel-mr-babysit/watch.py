@@ -65,15 +65,18 @@ class Gitlab:
 
 
 class Store:
-    def __init__(self, root):
+    def __init__(self, root, read_only=False):
         self.root = Path(root)
-        self.root.mkdir(parents=True, exist_ok=True)
+        self.read_only = read_only
+        if not read_only:
+            self.root.mkdir(parents=True, exist_ok=True)
 
     def seen(self, key):
         return (self.root / key).exists()
 
     def mark(self, key, value=""):
-        (self.root / key).write_text(value)
+        if not self.read_only:
+            (self.root / key).write_text(value)
 
     def read(self, key):
         f = self.root / key
@@ -261,16 +264,18 @@ def main():
     args = parse_args()
     tz = ZoneInfo(args.tz)
     gl = Gitlab(args.project, args.dry_run)
-    store = Store(args.state)
+    store = Store(args.state, read_only=args.dry_run)
     ignore = {u for u in args.ignore.split(",") if u}
     me = json.loads(subprocess.run(["glab", "api", "user"], capture_output=True, text=True, check=True).stdout)["username"]
     targets = {}
     for spec in args.mrs:
         iid, hhmm = spec.split("@")
         targets[int(iid)] = None if hhmm == "soft" else deadline_today(hhmm, tz)
-    if store.read("cutoff") is None:
-        store.mark("cutoff", (deadline_today("00:00", tz) + timedelta(days=1)).isoformat())
-    cutoff = deadline_today(args.until, tz) if args.until else datetime.fromisoformat(store.read("cutoff"))
+    midnight = store.read("cutoff")
+    if midnight is None:
+        midnight = (deadline_today("00:00", tz) + timedelta(days=1)).isoformat()
+        store.mark("cutoff", midnight)
+    cutoff = deadline_today(args.until, tz) if args.until else datetime.fromisoformat(midnight)
     while True:
         for line in tick(gl, store, targets, me, ignore, tz):
             print(line, flush=True)

@@ -61,7 +61,7 @@ the midnight cutoff. `--interval <seconds>` sets the check period.
 
 When the monitor expires, start it again with the same command. The state
 directory keeps it from repeating lines. Use `--once --dry-run` to see one
-tick without approving or merging anything.
+tick without approving, merging or writing to the state directory.
 
 Add a one-time backup with CronCreate for each MR, one minute after its
 deadline. Cron reads the machine's local time:
