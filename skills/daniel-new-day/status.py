@@ -123,6 +123,13 @@ def classify(branch, own, tip, mr, pushed_at):
     return "OPEN", f"{head}{draft} {mr['detailed_merge_status']} pipeline={pipe} threads={open_threads(mr['iid'])}{local}", set()
 
 
+def print_subjects(rows, limit=6):
+    for c in rows[:limit]:
+        print(f"{'':14}- {c['title']}")
+    if len(rows) > limit:
+        print(f"{'':14}- and {len(rows) - limit} more")
+
+
 def main():
     p = argparse.ArgumentParser(description="Sort recent jj work into done, pending and needs attention, with the jj commands to clean it.")
     p.add_argument("--days", type=int, default=2, help="working days back, today excluded (default 2)")
@@ -164,24 +171,26 @@ def main():
         sync = "" if pushed.get(b) in (None, tips[b]) else " unpushed-rewrite"
         conflicts = sum(c["conflict"] for c in own[b])
         flag = f" conflicts={conflicts}" if conflicts else ""
-        title = mrs[b]["title"][:70] if mrs[b] else ancestry[b][0]["title"][:70]
+        title = mrs[b]["title"] if mrs[b] else ancestry[b][0]["title"]
         print(f"{verdict:12} {b}  n={len(own[b])}{flag}{sync}  {note}  | {title}")
+        print_subjects([c for c in own[b] if c["title"] != title])
 
     loose = [c for c in scope if not any(c["change"] in sets[b] for b in branches)]
     for c in loose:
-        print(f"{'NO-BOOKMARK':12} {c['change']}  | {c['title'][:70]}")
+        print(f"{'NO-BOOKMARK':12} {c['change']}  | {c['title']}")
     for h in handoffs:
         print(f"{'HANDOFF':12} {h}  parked work: /daniel-integrate lands it, or delete it if its branch already has it")
+        print_subjects(commits(f"::{h} ~ ::{TRUNK}"))
 
     since = f"{start}T00:00:00Z"
     done = [m for m in api(f"projects/:id/merge_requests?author_username={me}&state=merged&updated_after={since}&per_page=100") if (m.get("merged_at") or "") >= since]
     print("\nMERGED SINCE WINDOW START (author me)")
     for m in sorted(done, key=lambda m: m["merged_at"]):
-        print(f"  !{m['iid']} {m['merged_at'][:16]}  {m['title'][:90]}")
+        print(f"  !{m['iid']} {m['merged_at'][:16]}  {m['title']}")
     elsewhere = [m for m in api(f"projects/:id/merge_requests?author_username={me}&state=opened&per_page=100") if m["iid"] not in seen_mrs]
     print("\nOPEN MRS OUTSIDE THE WINDOW")
     for m in elsewhere:
-        print(f"  !{m['iid']} {m['detailed_merge_status']}  {m['source_branch']}  | {m['title'][:70]}")
+        print(f"  !{m['iid']} {m['detailed_merge_status']}  {m['source_branch']}  | {m['title']}")
 
     if held:
         held = {c["change"] for c in commits(f"({'|'.join(held)})::")}

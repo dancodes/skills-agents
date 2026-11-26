@@ -19,8 +19,9 @@ Run every command from the repo root.
 
 2. **Status.** `python3 -B <SKILL>/status.py [--days N | --since YYYY-MM-DD]`.
    It only reads. It prints one verdict per branch with a commit in the
-   window, Daniel's MRs merged since the window start, his open MRs outside
-   the window, and the jj commands for steps 3 and 4. On an error, report
+   window, with its full title and its commit subjects under it, Daniel's
+   MRs merged since the window start, his open MRs outside the window, and
+   the jj commands for steps 3 and 4. On an error, report
    it and stop. Never guess a verdict.
 
    | Verdict | Meaning | Report section |
@@ -45,10 +46,17 @@ Run every command from the repo root.
    revset of the `REBASE` line resolves to no commits.
 
 5. **Report** Done, Pending and Needs attention, one line per MR or stack:
-   ticket, MR, state. Old conflicts and open MRs outside the window get one
-   line each.
+   ticket, MR, title, what it changes, state. Daniel does not know tickets
+   by number, so never give a bare `TT-NNN` or `!NNNN`:
+   - Title: the MR title, else the Linear title (`get_issue`) when the
+     bookmark names a ticket, else the tip commit's subject.
+   - What it changes: a few plain words from the commit subjects under the
+     branch line.
+   Old conflicts and open MRs outside the window get one line each, with
+   their title too.
 
-6. **Offer** these in "What I need from you". Do each one only on Daniel's yes:
+6. **Offer** these in "What I need from you". Do each one only on Daniel's
+   yes. Name each branch by ticket and title, as in the report:
    - Push the rebased branches: `jj git push -b <bookmark>` for each
      `danielsorichetti/*` branch that moved. Open MRs then rerun their
      pipelines. Ask for a branch that belongs to someone else on its own line.
