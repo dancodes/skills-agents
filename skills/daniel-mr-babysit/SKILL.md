@@ -85,7 +85,9 @@ no backup cron.
 | `CUTOFF` or `END` | Stop the watch and report each MR that is still open and why. |
 
 A soft MR gets no fixes: for `failed_jobs=`, `conflicts=True`, notes or
-`STUCK`, only tell Daniel. Report every soft auto-merge or cancel line.
+`STUCK`, only tell Daniel. Daniel can turn fixes on for a soft MR. It then gets
+the pipeline, conflict and STUCK fixes of a deadline MR, and notes still go to
+him. Report every soft auto-merge or cancel line.
 
 Only one fix runs per MR. A new failure while a fix runs waits for that fix.
 
@@ -133,6 +135,40 @@ Relay its report to Daniel without waiting for a reply.
 Write to Daniel only when an MR changes in a way that matters, an action ran, or
 he must decide. On a quiet tick, write nothing. Give times in the profile's
 time zone.
+
+Give every status update as a table with emojis, not as prose. Open with
+`Status at <HH:MM>:`, then one row per open MR the watch still tracks:
+
+| MR | Pipeline | Approved | Auto-merge | Conflicts | Auto-fix |
+|---|---|---|---|---|---|
+| !7952 | ✅ passed | ⏳ no | 🤖 waiting | ✅ none | 🚫 report only |
+| !7956 | ❌ failed: `frontend.test-integration 6/6` | ⏳ no | 🤖 at 21:00 | ⚠️ yes | 🔧 on |
+
+Use these values in each column:
+
+| Column | Values |
+|---|---|
+| Pipeline | ✅ passed · 🔄 running · ❌ failed: `<job names>` · ⚪ none |
+| Approved | ✅ yes · ⏳ no |
+| Auto-merge | 🤖 waiting (soft MR: the watch sets it when the MR is approved) · 🤖 at `<HH:MM>` (deadline MR: the watch approves and sets it then) · 🤖✅ set by me · 🦊 set in GitLab · 🛑 cancelled by a note |
+| Conflicts | ✅ none · ⚠️ yes |
+| Notes | 💬 `<count>` |
+| Auto-fix | 🔧 on · 🚫 report only |
+
+- **Auto-merge:** tell apart who set it. 🤖✅ means the watch printed an
+  `auto-merge: ok` line for that MR. 🦊 means `automerge=True` with no such
+  line, so a person set it in GitLab. Never show a bare "off": an open MR is
+  always waiting for the watch, set, or cancelled.
+- **Notes:** add the column only when at least one MR has a nonzero
+  `comments=` or `open_threads=` count. Put 💬 only before a nonzero count.
+  Show a zero as `0`, with no emoji.
+- **Auto-fix:** 🔧 for a deadline MR, and for a soft MR that Daniel turned
+  fixes on for. 🚫 for any other soft MR.
+- **Merged MRs:** take the MR out of the table. Add one line under it:
+  `✅ !<N> merged at <HH:MM>.`
+- **Actions and decisions:** after the table, give one short line for each
+  action that ran (a fix agent's report, a retry, an approval). Questions go in
+  the "What I need from you" section, as usual.
 
 ## 5. End
 
